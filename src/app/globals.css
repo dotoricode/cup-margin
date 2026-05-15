@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fff8ef;
-  --foreground: #1c140f;
+  --background: #f7f9fc;
+  --foreground: #061b31;
+  --font-sans-stack: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
 }
 
 @theme inline {
@@ -23,7 +24,9 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans-stack), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-sans-stack);
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
@@ -31,7 +34,23 @@ input {
   font: inherit;
 }
 
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+p,
+a,
+button,
+label {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 ::selection {
-  background: #f7c873;
-  color: #1c140f;
+  background: #d6d9fc;
+  color: #061b31;
 }
