@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import {
   calculateMultiMenuMargin,
+  calculatePriceChangeRisk,
   DEFAULT_MULTI_MENU_INPUT,
   type MenuMarginInput,
   type MultiMenuMarginInput,
@@ -65,7 +66,7 @@ const problemCards = [
   },
   {
     title: "잘 팔리는 메뉴가 꼭 많이 남지는 않아요",
-    body: "총매출, 잔당 마진, 월 이익을 함께 보면 가격 인상 후보와 레시피 점검 메뉴가 갈립니다.",
+    body: "총매출, 잔당 마진, 월 이익을 함께 보고, 가격을 바꿨을 때 판매량이 얼마나 줄어도 괜찮은지까지 확인합니다.",
   },
 ];
 
@@ -73,7 +74,14 @@ export function CupMarginLanding() {
   const [input, setInput] = useState<MultiMenuMarginInput>(() => cloneInput(DEFAULT_MULTI_MENU_INPUT));
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
+  const [selectedMenuId, setSelectedMenuId] = useState(DEFAULT_MULTI_MENU_INPUT.menus[1]?.id ?? DEFAULT_MULTI_MENU_INPUT.menus[0].id);
+  const [priceDelta, setPriceDelta] = useState(500);
+  const [volumeChangeRate, setVolumeChangeRate] = useState(-5);
   const result = useMemo(() => calculateMultiMenuMargin(input), [input]);
+  const selectedMenu = result.menus.find((menu) => menu.id === selectedMenuId) ?? result.menus[0];
+  const priceRisk = selectedMenu
+    ? calculatePriceChangeRisk(selectedMenu, { priceDelta, volumeChangeRate })
+    : null;
   const verdict = getPortfolioVerdict(result);
   const topMenu = result.menus.slice().sort((a, b) => b.monthlyProfit - a.monthlyProfit)[0];
 
@@ -141,12 +149,12 @@ export function CupMarginLanding() {
                 여러 메뉴를 한 번에 보는 무료 마진 계산기
               </div>
               <h1 className="mt-7 text-[40px] font-medium leading-[1.04] tracking-[-0.052em] text-[#061b31] sm:text-[60px] lg:text-[72px]">
-                메뉴별로 팔린 잔 수까지
-                <span className="block text-[#533afd]">진짜 남는 돈을</span>
-                <span className="block">계산해드려요</span>
+                메뉴별 판매량까지
+                <span className="block text-[#533afd]">진짜 남는 돈에</span>
+                <span className="block">반영해드려요</span>
               </h1>
               <p className="mt-7 max-w-2xl text-lg font-normal leading-8 text-[#64748d] sm:text-xl">
-                월 임대료·관리비·인건비 같은 고정 운영비는 한 번만 입력하세요. 컵마진이 메뉴별 판매량에 맞춰 고정비를 배부하고, 전체 손익과 메뉴별 마진을 함께 보여드립니다.
+                임대료·관리비·인건비는 한 번만 입력하세요. 컵마진이 판매량에 맞춰 고정비를 나누고, 가격을 바꿨을 때 몇 잔까지 줄어도 괜찮은지 보여드립니다.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#calculator" className="rounded-lg bg-[#533afd] px-6 py-4 text-center text-base font-bold text-white shadow-[rgba(50,50,93,0.25)_0px_30px_45px_-30px,rgba(0,0,0,0.1)_0px_18px_36px_-18px] transition hover:-translate-y-0.5 hover:bg-[#4434d4]">
@@ -184,7 +192,7 @@ export function CupMarginLanding() {
             <span className="block">가게 전체 흐름으로 봅니다.</span>
           </h2>
           <p className="max-w-2xl text-lg leading-8 text-[#64748d]">
-            Toss처럼 숫자는 단순하게, WeNote처럼 한 가지 업무는 명확하게. 컵마진은 사장님이 가격·원가 판단에 쓰는 시간을 줄이는 데 집중합니다.
+            숫자는 단순하게, 한 가지 업무는 명확하게. 컵마진은 사장님이 가격·원가 판단에 쓰는 시간을 줄이는 데 집중합니다.
           </p>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
@@ -291,7 +299,17 @@ export function CupMarginLanding() {
 
           <aside className="space-y-5 lg:sticky lg:top-6 lg:self-start">
             <ResultPanel result={result} verdict={verdict} />
-            <MenuBreakdownPanel menus={result.menus} />
+            <PriceRiskPanel
+              menus={result.menus}
+              selectedMenuId={selectedMenu?.id ?? ""}
+              onSelectMenu={setSelectedMenuId}
+              priceDelta={priceDelta}
+              onChangePriceDelta={setPriceDelta}
+              volumeChangeRate={volumeChangeRate}
+              onChangeVolumeChangeRate={setVolumeChangeRate}
+              risk={priceRisk}
+            />
+            <MenuBreakdownPanel menus={result.menus} onSelectMenu={setSelectedMenuId} />
           </aside>
         </div>
       </section>
@@ -307,13 +325,18 @@ export function CupMarginLanding() {
               </h2>
             </div>
             <p className="max-w-2xl text-base leading-7 text-white/70">
-              MVP 단계에서는 결제보다 사용 의향 검증이 먼저입니다. 플랜 CTA는 관심 표현으로 두고, 실제 결제는 검증 후 연결합니다.
+              계산은 무료입니다. 메뉴 저장, 가격 변경 리스크 비교, 월간 리포트가 필요하면 출시 소식을 받아보세요. 결제는 사장님이 실제로 다시 쓰겠다고 느끼는 기능부터 연결합니다.
             </p>
           </div>
           <div className="mt-10 grid gap-4 lg:grid-cols-3">
             {pricingPlans.map((plan) => (
               <div key={plan.name} className={`rounded-2xl border p-6 ${plan.highlighted ? "border-[#b9b9f9] bg-white text-[#061b31]" : "border-white/10 bg-white/[0.07]"}`}>
                 <p className={`text-sm font-bold ${plan.highlighted ? "text-[#533afd]" : "text-white/60"}`}>{plan.name}</p>
+                {"badge" in plan && plan.badge ? (
+                  <span className="mt-3 inline-flex rounded-full bg-[#533afd] px-3 py-1 text-xs font-black text-white shadow-[rgba(83,58,253,0.24)_0px_10px_22px_-14px]">
+                    {plan.badge}
+                  </span>
+                ) : null}
                 <p className="mt-3 text-4xl font-light tracking-[-0.04em]">{plan.price}</p>
                 <p className={`mt-2 text-sm ${plan.highlighted ? "text-[#64748d]" : "text-white/55"}`}>{plan.caption}</p>
                 <ul className="mt-6 space-y-3 text-sm font-semibold">
@@ -341,7 +364,7 @@ export function CupMarginLanding() {
             <SectionEyebrow>출시 알림 받기</SectionEyebrow>
             <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31] sm:text-5xl">여러 메뉴 저장 기능이 열리면 가장 먼저 알려드릴게요</h2>
             <p className="mt-4 leading-7 text-[#64748d]">
-              지금은 무료 계산으로 검증하고, 베이직·스탠다드 플랜은 실제 사용 의향이 확인되면 연결합니다. 이메일은 현재 화면에서만 확인하는 임시 MVP 폼입니다.
+              지금 계산한 메뉴와 가격 변경 시나리오를 저장해두고 매달 다시 보고 싶다면 알림을 남겨주세요. 이메일은 현재 화면에서만 확인하는 임시 폼이며, 실제 저장·발송 기능은 다음 단계에서 연결합니다.
             </p>
           </div>
           <form onSubmit={submitWaitlist} className="rounded-2xl bg-[#f8fbff] p-4 sm:p-5">
@@ -357,6 +380,7 @@ export function CupMarginLanding() {
                 }}
                 placeholder="owner@example.com"
                 className="min-h-12 flex-1 rounded-lg border border-[#d8e3ee] bg-white px-4 text-base font-medium text-[#061b31] outline-none transition focus:border-[#533afd]"
+                required
               />
               <button type="submit" className="rounded-lg bg-[#533afd] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#4434d4]">
                 출시 알림 받기
@@ -459,7 +483,131 @@ function ResultPanel({ result, verdict }: { result: MultiMenuMarginResult; verdi
   );
 }
 
-function MenuBreakdownPanel({ menus }: { menus: MenuMarginResult[] }) {
+function PriceRiskPanel({
+  menus,
+  selectedMenuId,
+  onSelectMenu,
+  priceDelta,
+  onChangePriceDelta,
+  volumeChangeRate,
+  onChangeVolumeChangeRate,
+  risk,
+}: {
+  menus: MenuMarginResult[];
+  selectedMenuId: string;
+  onSelectMenu: (menuId: string) => void;
+  priceDelta: number;
+  onChangePriceDelta: (value: number) => void;
+  volumeChangeRate: number;
+  onChangeVolumeChangeRate: (value: number) => void;
+  risk: ReturnType<typeof calculatePriceChangeRisk> | null;
+}) {
+  const selectedMenu = menus.find((menu) => menu.id === selectedMenuId) ?? menus[0];
+  const scenarioButtons = [-15, -5, 0, 5];
+
+  if (!selectedMenu || !risk) {
+    return null;
+  }
+
+  return (
+    <div className="rounded-3xl border border-[#d6d9fc] bg-[linear-gradient(180deg,#ffffff_0%,#f7f7ff_100%)] p-6 shadow-[rgba(83,58,253,0.18)_0px_28px_56px_-34px] transition-all duration-500 ease-out">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-bold text-[#533afd]">가격 변경 리스크</p>
+          <h3 className="mt-2 text-2xl font-light tracking-[-0.03em] text-[#061b31]">몇 잔까지 줄어도 괜찮을까요?</h3>
+        </div>
+        <span className={`rounded-md px-2 py-1 text-xs font-bold ${risk.verdict === "risk" ? "bg-rose-100 text-rose-700" : risk.verdict === "watch" ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
+          {risk.verdict === "risk" ? "위험" : risk.verdict === "watch" ? "주의" : "확인"}
+        </span>
+      </div>
+
+      <label className="mt-5 block text-sm font-bold text-[#273951]" htmlFor="risk-menu">
+        검토할 메뉴
+      </label>
+      <select
+        id="risk-menu"
+        value={selectedMenu.id}
+        onChange={(event) => onSelectMenu(event.target.value)}
+        className="mt-2 min-h-12 w-full rounded-xl border border-[#d8e3ee] bg-white px-4 text-base font-semibold text-[#061b31] outline-none transition focus:border-[#533afd]"
+      >
+        {menus.map((menu) => (
+          <option key={menu.id} value={menu.id}>
+            {menu.menuName || "이름 없는 메뉴"}
+          </option>
+        ))}
+      </select>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <label className="rounded-2xl border border-[#d8e3ee] bg-white p-4 transition focus-within:border-[#533afd]">
+          <span className="flex items-center justify-between text-sm font-bold text-[#273951]">
+            가격 변화 <span className="text-xs text-[#64748d]">원</span>
+          </span>
+          <input
+            value={formatInputValue(priceDelta)}
+            onChange={(event) => onChangePriceDelta(parseNumberInput(event.target.value))}
+            type="text"
+            inputMode="numeric"
+            className="mt-3 w-full bg-transparent text-xl font-semibold tracking-[-0.03em] text-[#061b31] outline-none"
+          />
+          <span className="mt-2 block text-xs leading-5 text-[#64748d]">예: 300, 500, 1000</span>
+        </label>
+        <label className="rounded-2xl border border-[#d8e3ee] bg-white p-4 transition focus-within:border-[#533afd]">
+          <span className="flex items-center justify-between text-sm font-bold text-[#273951]">
+            판매량 변화 <span className="text-xs text-[#64748d]">%</span>
+          </span>
+          <input
+            value={String(volumeChangeRate)}
+            onChange={(event) => onChangeVolumeChangeRate(parseSignedNumberInput(event.target.value))}
+            type="text"
+            inputMode="numeric"
+            className="mt-3 w-full bg-transparent text-xl font-semibold tracking-[-0.03em] text-[#061b31] outline-none"
+          />
+          <span className="mt-2 block text-xs leading-5 text-[#64748d]">줄어들면 -10처럼 입력</span>
+        </label>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {scenarioButtons.map((rate) => (
+          <button
+            key={rate}
+            type="button"
+            onClick={() => onChangeVolumeChangeRate(rate)}
+            className={`rounded-full px-3 py-1.5 text-xs font-black transition hover:-translate-y-0.5 ${volumeChangeRate === rate ? "bg-[#533afd] text-white shadow-[rgba(83,58,253,0.28)_0px_12px_22px_-14px]" : "bg-white text-[#533afd] ring-1 ring-[#d6d9fc]"}`}
+          >
+            {rate > 0 ? `+${rate}%` : `${rate}%`}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <Metric label="새 판매가" value={formatWon(risk.newSalePrice)} />
+        <Metric label="가정 판매량" value={`${formatNumber(risk.assumedMonthlyCups)}잔`} />
+        <Metric label="예상 월 이익" value={formatWon(risk.projectedMonthlyProfit)} emphasis />
+        <Metric label="기존 대비" value={`${risk.profitDelta >= 0 ? "+" : ""}${formatWon(risk.profitDelta)}`} emphasis={risk.profitDelta >= 0} />
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-[#d6d9fc] bg-white p-4">
+        <p className="text-sm font-black text-[#061b31]">
+          {risk.allowedDropCups !== null && risk.allowedDropRate !== null
+            ? `판매량이 ${formatNumber(Math.max(0, risk.allowedDropCups))}잔, 약 ${formatPercent(Math.max(0, risk.allowedDropRate))} 이상 줄면 인상 효과가 사라집니다.`
+            : "새 가격에서도 잔당 이익이 남지 않아 가격보다 원가 구조를 먼저 봐야 합니다."}
+        </p>
+        <p className="mt-2 text-sm leading-6 text-[#64748d]">{risk.summary}</p>
+      </div>
+      <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-xs font-semibold leading-5 text-amber-900">
+        {risk.warning}
+      </p>
+      <p className="mt-4 text-xs font-bold leading-5 text-[#64748d]">
+        가격 변경은 한 번 보고 끝나는 계산이 아니라, 다음 달 실제 판매량과 비교해야 의미가 있습니다.
+      </p>
+      <a href="#waitlist" className="mt-3 block rounded-xl bg-[#533afd] px-4 py-3 text-center text-sm font-black text-white shadow-[rgba(83,58,253,0.3)_0px_16px_30px_-16px] transition duration-300 hover:-translate-y-0.5 hover:bg-[#4434d4]">
+        베이직 출시 알림 받고 시나리오 저장하기
+      </a>
+    </div>
+  );
+}
+
+function MenuBreakdownPanel({ menus, onSelectMenu }: { menus: MenuMarginResult[]; onSelectMenu: (menuId: string) => void }) {
   return (
     <div className="rounded-3xl border border-[#e5edf5] bg-white p-6 shadow-[rgba(23,23,23,0.06)_0px_18px_44px_-28px]">
       <h3 className="text-2xl font-light tracking-[-0.03em] text-[#061b31]">메뉴별 손익</h3>
@@ -476,7 +624,14 @@ function MenuBreakdownPanel({ menus }: { menus: MenuMarginResult[] }) {
               </span>
             </div>
             <p className="mt-3 text-2xl font-light tracking-[-0.03em] text-[#061b31]">{formatWon(menu.profitPerCup)} / 잔</p>
-            <p className="text-sm leading-6 text-[#64748d]">월 {formatWon(menu.monthlyProfit)} · 마진율 {formatPercent(menu.marginRate)} · 500원 인상 시 월 {formatWon(menu.priceUpMonthlyProfit)}</p>
+            <p className="text-sm leading-6 text-[#64748d]">월 {formatWon(menu.monthlyProfit)} · 마진율 {formatPercent(menu.marginRate)} · 가격 변경 전 판매량 리스크를 먼저 확인하세요</p>
+            <button
+              type="button"
+              onClick={() => onSelectMenu(menu.id)}
+              className="mt-3 w-full rounded-xl border border-[#d6d9fc] bg-white px-3 py-2 text-sm font-black text-[#533afd] transition hover:-translate-y-0.5 hover:bg-[#f7f7ff]"
+            >
+              이 메뉴 가격 리스크 보기
+            </button>
           </div>
         ))}
       </div>
@@ -534,6 +689,12 @@ function getPortfolioVerdict(result: MultiMenuMarginResult): PortfolioVerdict {
 function parseNumberInput(value: string) {
   const normalized = value.replace(/[^0-9]/g, "");
   return normalized ? Number(normalized) : 0;
+}
+
+function parseSignedNumberInput(value: string) {
+  const normalized = value.replace(/[^0-9-]/g, "");
+  if (!normalized || normalized === "-") return 0;
+  return Number(normalized);
 }
 
 function formatInputValue(value: string | number) {

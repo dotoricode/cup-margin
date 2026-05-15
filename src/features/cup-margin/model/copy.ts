@@ -39,9 +39,10 @@ export const pricingPlans = [
   {
     name: "베이직",
     price: "월 9,900원",
-    caption: "연 99,000원 예정",
+    caption: "출시 예정가",
     highlighted: true,
-    features: ["메뉴 10개 저장", "월 1회 마진 리포트", "가격 인상 후보 확인"],
+    badge: "추천",
+    features: ["메뉴 10개 저장", "월 1회 마진 리포트", "가격 변경 리스크 비교"],
   },
   {
     name: "스탠다드",
