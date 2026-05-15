@@ -34,7 +34,7 @@ export const pricingPlans = [
     name: "무료 체험",
     price: "0원",
     caption: "카드 등록 없음",
-    features: ["메뉴 1개 컵마진 계산", "500원/1,000원 인상 비교", "샘플값 바로 채우기"],
+    features: ["여러 메뉴 컵마진 계산", "고정 운영비 자동 배부", "샘플값 바로 채우기"],
   },
   {
     name: "베이직",

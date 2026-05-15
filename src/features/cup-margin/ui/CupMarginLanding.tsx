@@ -1,13 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { calculateCupMargin, DEFAULT_MARGIN_INPUT } from "../model/calculateCupMargin";
-import { operatingPacks, pricingPlans, verdictCopy } from "../model/copy";
+import type { FormEvent, ReactNode } from "react";
+import {
+  calculateMultiMenuMargin,
+  DEFAULT_MULTI_MENU_INPUT,
+  type MenuMarginInput,
+  type MultiMenuMarginInput,
+  type MultiMenuMarginResult,
+  type MenuMarginResult,
+} from "../model/calculateMultiMenuMargin";
+import { operatingPacks, pricingPlans } from "../model/copy";
 import { formatNumber, formatPercent, formatWon } from "../model/formatters";
-import type { CupMarginInput } from "../model/types";
 
-const emptyInput: CupMarginInput = {
-  menuName: "",
+const emptyMenu = (index: number): MenuMarginInput => ({
+  id: `menu-${Date.now()}-${index}`,
+  menuName: `새 메뉴 ${index}`,
   salePrice: 0,
   ingredientCost: 0,
   packagingCost: 0,
@@ -15,66 +23,90 @@ const emptyInput: CupMarginInput = {
   wasteRate: 0,
   laborCostPerCup: 0,
   extraCost: 0,
+  expectedMonthlyCups: 0,
+});
+
+const emptyInput: MultiMenuMarginInput = {
   monthlyFixedCost: 0,
-  expectedMonthlyCups: 300,
+  menus: [emptyMenu(1)],
 };
 
-const fields: Array<{
-  id: keyof CupMarginInput;
+const menuFields: Array<{
+  id: Exclude<keyof MenuMarginInput, "id" | "menuName">;
   label: string;
   suffix?: string;
-  placeholder?: string;
   helper: string;
-  group: "기본" | "비용" | "운영";
+  compact?: boolean;
 }> = [
-  { id: "menuName", label: "메뉴명", placeholder: "예: 바닐라 라떼", helper: "계산할 메뉴 이름", group: "기본" },
-  { id: "salePrice", label: "판매가", suffix: "원", helper: "고객이 실제로 내는 가격", group: "기본" },
-  { id: "ingredientCost", label: "재료비", suffix: "원", helper: "원두, 우유, 시럽, 토핑 등", group: "비용" },
-  { id: "packagingCost", label: "컵/포장비", suffix: "원", helper: "컵, 뚜껑, 빨대, 캐리어", group: "비용" },
-  { id: "platformFeeRate", label: "배달·플랫폼 수수료", suffix: "%", helper: "매장 판매만 하면 0", group: "비용" },
-  { id: "wasteRate", label: "폐기·로스 여유분", suffix: "%", helper: "재료 폐기나 제조 실패 여유", group: "비용" },
-  { id: "laborCostPerCup", label: "한 잔당 인건비", suffix: "원", helper: "대략값으로 시작해도 괜찮아요", group: "운영" },
-  { id: "extraCost", label: "기타 비용", suffix: "원", helper: "쿠폰, 서비스 토핑 등", group: "운영" },
-  { id: "monthlyFixedCost", label: "월 고정비 배부", suffix: "원", helper: "임대료·관리비 중 이 메뉴에 나눠볼 금액", group: "운영" },
-  { id: "expectedMonthlyCups", label: "월 예상 판매잔수", suffix: "잔", helper: "손익분기 계산에 사용", group: "운영" },
+  { id: "expectedMonthlyCups", label: "월 판매잔수", suffix: "잔", helper: "한 달 예상 판매량" },
+  { id: "salePrice", label: "판매가", suffix: "원", helper: "고객 결제 가격" },
+  { id: "ingredientCost", label: "원재료비", suffix: "원", helper: "원두·우유·시럽·토핑" },
+  { id: "packagingCost", label: "컵/포장비", suffix: "원", helper: "컵·뚜껑·빨대·캐리어" },
+  { id: "platformFeeRate", label: "플랫폼 수수료", suffix: "%", helper: "매장 판매만 하면 0", compact: true },
+  { id: "wasteRate", label: "폐기율", suffix: "%", helper: "폐기·제조 실패 여유", compact: true },
+  { id: "laborCostPerCup", label: "잔당 인건비", suffix: "원", helper: "대략값으로 시작" },
+  { id: "extraCost", label: "기타 비용", suffix: "원", helper: "쿠폰·서비스 토핑" },
 ];
 
 const proofItems = [
-  { label: "무료 체험", value: "1개 메뉴", detail: "카드 등록 없이 바로 계산" },
-  { label: "첫 유료안", value: "월 9,900원", detail: "소형 카페도 부담 적게" },
-  { label: "계산 범위", value: "10개 항목", detail: "원가·수수료·폐기·고정비" },
+  { label: "계산 방식", value: "다중 메뉴", detail: "고정비는 한 번만 입력" },
+  { label: "고정비 배부", value: "잔수 기준", detail: "많이 팔린 메뉴가 더 부담" },
+  { label: "무료 체험", value: "카드 없음", detail: "샘플값으로 바로 확인" },
 ];
 
 const problemCards = [
   {
-    title: "매출은 보이는데 남는 돈은 흐릿해요",
-    body: "POS 매출만 보면 잘 팔리는 메뉴처럼 보여도, 컵·우유·폐기·수수료를 넣으면 이야기가 달라집니다.",
+    title: "하나의 메뉴만 보면 현실과 멀어져요",
+    body: "아메리카노와 라떼는 판매량, 원가, 폐기율이 다릅니다. 메뉴별 판매잔수를 넣어야 전체 손익이 보입니다.",
   },
   {
-    title: "가격을 올려야 할지 감으로 결정해요",
-    body: "500원만 올려도 월 이익이 얼마나 달라지는지 바로 보여주면 결정이 쉬워집니다.",
+    title: "임대료·관리비는 메뉴마다 따로 내지 않아요",
+    body: "월 고정 운영비는 한 번만 입력하고, 전체 판매잔수로 나눠 메뉴별로 자동 배부합니다.",
   },
   {
-    title: "계산표는 만들었지만 계속 안 쓰게 돼요",
-    body: "컵마진은 한 메뉴부터 작게 시작합니다. 복잡한 장부보다 ‘한 잔 남는 돈’을 먼저 보여줍니다.",
+    title: "잘 팔리는 메뉴가 꼭 많이 남지는 않아요",
+    body: "총매출, 잔당 마진, 월 이익을 함께 보면 가격 인상 후보와 레시피 점검 메뉴가 갈립니다.",
   },
 ];
 
 export function CupMarginLanding() {
-  const [input, setInput] = useState<CupMarginInput>(DEFAULT_MARGIN_INPUT);
+  const [input, setInput] = useState<MultiMenuMarginInput>(() => cloneInput(DEFAULT_MULTI_MENU_INPUT));
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
-  const result = useMemo(() => calculateCupMargin(input), [input]);
-  const verdict = verdictCopy[result.verdict];
+  const result = useMemo(() => calculateMultiMenuMargin(input), [input]);
+  const verdict = getPortfolioVerdict(result);
+  const topMenu = result.menus.slice().sort((a, b) => b.monthlyProfit - a.monthlyProfit)[0];
 
-  function updateField(id: keyof CupMarginInput, rawValue: string) {
+  function updateFixedCost(rawValue: string) {
+    setInput((current) => ({ ...current, monthlyFixedCost: parseNumberInput(rawValue) }));
+  }
+
+  function updateMenuField(menuId: string, fieldId: keyof MenuMarginInput, rawValue: string) {
     setInput((current) => ({
       ...current,
-      [id]: id === "menuName" ? rawValue : parseNumberInput(rawValue),
+      menus: current.menus.map((menu) =>
+        menu.id === menuId
+          ? { ...menu, [fieldId]: fieldId === "menuName" ? rawValue : parseNumberInput(rawValue) }
+          : menu,
+      ),
     }));
   }
 
-  function submitWaitlist(event: React.FormEvent<HTMLFormElement>) {
+  function addMenu() {
+    setInput((current) => ({
+      ...current,
+      menus: [...current.menus, emptyMenu(current.menus.length + 1)],
+    }));
+  }
+
+  function removeMenu(menuId: string) {
+    setInput((current) => ({
+      ...current,
+      menus: current.menus.length <= 1 ? current.menus : current.menus.filter((menu) => menu.id !== menuId),
+    }));
+  }
+
+  function submitWaitlist(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!waitlistEmail.trim()) return;
     setWaitlistSubmitted(true);
@@ -83,18 +115,18 @@ export function CupMarginLanding() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#f7f9fc] text-[#061b31]">
       <section className="relative bg-white">
-        <div className="absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_20%_10%,rgba(83,58,253,0.16),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(43,145,223,0.18),transparent_26%),linear-gradient(180deg,#ffffff_0%,#f6f9fc_100%)]" />
+        <div className="absolute inset-x-0 top-0 h-[660px] bg-[radial-gradient(circle_at_18%_8%,rgba(83,58,253,0.16),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(43,145,223,0.18),transparent_26%),linear-gradient(180deg,#ffffff_0%,#f6f9fc_100%)]" />
         <div className="relative mx-auto w-full max-w-7xl px-5 py-5 sm:px-8 lg:px-10">
-          <nav className="flex items-center justify-between rounded-2xl border border-[#e5edf5] bg-white/85 px-4 py-3 shadow-[rgba(50,50,93,0.12)_0px_16px_40px_-24px,rgba(0,0,0,0.08)_0px_8px_24px_-18px] backdrop-blur">
+          <nav className="flex items-center justify-between rounded-2xl border border-[#e5edf5] bg-white/88 px-4 py-3 shadow-[rgba(50,50,93,0.12)_0px_16px_40px_-24px,rgba(0,0,0,0.08)_0px_8px_24px_-18px] backdrop-blur">
             <a href="#top" className="flex items-center gap-3" aria-label="컵마진 홈">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#533afd] text-sm font-black text-white shadow-[rgba(83,58,253,0.35)_0px_10px_24px_-12px]">컵</div>
               <div>
                 <p className="text-[15px] font-black tracking-[-0.02em] text-[#061b31]">컵마진</p>
-                <p className="text-xs text-[#64748d]">한 잔 단위 마진 노트</p>
+                <p className="hidden text-xs text-[#64748d] sm:block">카페 메뉴 손익 계산기</p>
               </div>
             </a>
             <div className="hidden items-center gap-6 text-sm font-semibold text-[#273951] md:flex">
-              <a href="#why" className="hover:text-[#533afd]">왜 필요해요?</a>
+              <a href="#why" className="hover:text-[#533afd]">왜 다중 메뉴인가요?</a>
               <a href="#calculator" className="hover:text-[#533afd]">무료 계산</a>
               <a href="#pricing" className="hover:text-[#533afd]">가격</a>
             </div>
@@ -103,19 +135,18 @@ export function CupMarginLanding() {
             </a>
           </nav>
 
-          <div id="top" className="grid items-center gap-12 pb-20 pt-16 lg:grid-cols-[1fr_0.86fr] lg:pb-28 lg:pt-24">
+          <div id="top" className="grid items-center gap-12 pb-20 pt-16 lg:grid-cols-[1fr_0.92fr] lg:pb-28 lg:pt-24">
             <div className="max-w-3xl">
               <div className="inline-flex rounded-md border border-[#d6d9fc] bg-white px-3 py-1.5 text-sm font-semibold text-[#533afd] shadow-sm">
-                카드 등록 없이 1개 메뉴 무료 계산
+                여러 메뉴를 한 번에 보는 무료 마진 계산기
               </div>
-              <h1 className="mt-7 text-[42px] font-medium leading-[1.05] tracking-[-0.055em] text-[#061b31] sm:text-[62px] lg:text-[74px]">
-                한 잔 팔면
-                <span className="block">진짜 얼마 남는지</span>
-                <span className="block text-[#533afd]">바로 보여드려요</span>
+              <h1 className="mt-7 text-[40px] font-medium leading-[1.04] tracking-[-0.052em] text-[#061b31] sm:text-[60px] lg:text-[72px]">
+                메뉴별로 팔린 잔 수까지
+                <span className="block text-[#533afd]">진짜 남는 돈을</span>
+                <span className="block">계산해드려요</span>
               </h1>
               <p className="mt-7 max-w-2xl text-lg font-normal leading-8 text-[#64748d] sm:text-xl">
-                컵마진은 카페 사장님이 메뉴별 원가, 컵/포장비, 수수료, 폐기율을 넣고
-                <strong className="font-semibold text-[#061b31]"> 한 잔당 남는 돈</strong>과 가격 인상 효과를 확인하는 쉬운 계산 노트입니다.
+                월 임대료·관리비·인건비 같은 고정 운영비는 한 번만 입력하세요. 컵마진이 메뉴별 판매량에 맞춰 고정비를 배부하고, 전체 손익과 메뉴별 마진을 함께 보여드립니다.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <a href="#calculator" className="rounded-lg bg-[#533afd] px-6 py-4 text-center text-base font-bold text-white shadow-[rgba(50,50,93,0.25)_0px_30px_45px_-30px,rgba(0,0,0,0.1)_0px_18px_36px_-18px] transition hover:-translate-y-0.5 hover:bg-[#4434d4]">
@@ -123,7 +154,7 @@ export function CupMarginLanding() {
                 </a>
                 <button
                   type="button"
-                  onClick={() => setInput(DEFAULT_MARGIN_INPUT)}
+                  onClick={() => setInput(cloneInput(DEFAULT_MULTI_MENU_INPUT))}
                   className="rounded-lg border border-[#b9b9f9] bg-white px-6 py-4 text-base font-bold text-[#533afd] transition hover:-translate-y-0.5 hover:bg-[#f7f7ff]"
                 >
                   샘플 결과 보기
@@ -140,20 +171,20 @@ export function CupMarginLanding() {
               </div>
             </div>
 
-            <HeroResultCard result={result} verdict={verdict} />
+            <HeroDashboard result={result} verdict={verdict} topMenu={topMenu} />
           </div>
         </div>
       </section>
 
       <section id="why" className="mx-auto w-full max-w-7xl px-5 py-20 sm:px-8 lg:px-10">
-        <SectionEyebrow>WeNote처럼 명확한 업무 하나부터</SectionEyebrow>
+        <SectionEyebrow>현실적인 카페 손익 구조</SectionEyebrow>
         <div className="mt-3 grid gap-8 lg:grid-cols-[0.9fr_1fr] lg:items-end">
           <h2 className="max-w-4xl text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31] sm:text-5xl">
-            <span className="block">복잡한 카페 운영보다 먼저,</span>
-            <span className="block">돈이 새는 메뉴를 찾습니다.</span>
+            <span className="block">한 메뉴가 아니라,</span>
+            <span className="block">가게 전체 흐름으로 봅니다.</span>
           </h2>
           <p className="max-w-2xl text-lg leading-8 text-[#64748d]">
-            상담 선생님이 위노트로 월말 기록 업무를 줄이듯, 컵마진은 카페 사장님이 가격·원가 판단에 쓰는 시간을 줄이는 쪽에 집중합니다.
+            Toss처럼 숫자는 단순하게, WeNote처럼 한 가지 업무는 명확하게. 컵마진은 사장님이 가격·원가 판단에 쓰는 시간을 줄이는 데 집중합니다.
           </p>
         </div>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
@@ -173,47 +204,94 @@ export function CupMarginLanding() {
             <div className="flex flex-col gap-4 border-b border-[#e5edf5] pb-6 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <SectionEyebrow>무료 계산기</SectionEyebrow>
-                <h2 className="mt-3 text-3xl font-medium tracking-[-0.04em] text-[#061b31] sm:text-4xl">내 메뉴 숫자 넣어보기</h2>
+                <h2 className="mt-3 text-3xl font-medium tracking-[-0.04em] text-[#061b31] sm:text-4xl">메뉴별 판매량으로 계산하기</h2>
                 <p className="mt-3 max-w-2xl text-base leading-7 text-[#64748d]">
-                  정확한 회계값이 아니어도 괜찮아요. 대략값을 넣고 가격 판단의 출발점을 잡아보세요.
+                  고정 운영비는 한 번만 입력하고, 각 메뉴의 월 판매잔수·원가·수수료를 넣어보세요.
                 </p>
               </div>
-              <button type="button" onClick={() => setInput(emptyInput)} className="w-fit rounded-lg border border-[#d6d9fc] px-4 py-2 text-sm font-bold text-[#533afd] hover:bg-[#f7f7ff]">
-                입력값 비우기
-              </button>
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setInput(cloneInput(emptyInput))} className="w-fit rounded-lg border border-[#d6d9fc] px-4 py-2 text-sm font-bold text-[#533afd] hover:bg-[#f7f7ff]">
+                  입력값 비우기
+                </button>
+                <button type="button" onClick={() => setInput(cloneInput(DEFAULT_MULTI_MENU_INPUT))} className="w-fit rounded-lg bg-[#533afd] px-4 py-2 text-sm font-bold text-white hover:bg-[#4434d4]">
+                  샘플 채우기
+                </button>
+              </div>
             </div>
 
-            {(["기본", "비용", "운영"] as const).map((group) => (
-              <div key={group} className="border-b border-[#edf2f7] py-6 last:border-b-0 last:pb-0">
-                <p className="mb-4 text-sm font-bold text-[#273951]">{group}</p>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {fields
-                    .filter((field) => field.group === group)
-                    .map((field) => (
-                      <label key={field.id} className="rounded-xl border border-[#d8e3ee] bg-white p-4 shadow-[rgba(23,23,23,0.04)_0px_8px_18px_-14px] transition focus-within:border-[#533afd] focus-within:bg-white focus-within:shadow-[rgba(83,58,253,0.18)_0px_14px_30px_-18px]">
+            <label className="mt-6 block rounded-2xl border border-[#d8e3ee] bg-[#f8fbff] p-5 transition focus-within:border-[#533afd] focus-within:bg-white">
+              <span className="flex items-center justify-between gap-3 text-sm font-bold text-[#273951]">
+                월 고정 운영비
+                <span className="text-xs text-[#64748d]">원</span>
+              </span>
+              <input
+                value={formatInputValue(input.monthlyFixedCost)}
+                onChange={(event) => updateFixedCost(event.target.value)}
+                type="text"
+                inputMode="numeric"
+                placeholder="예: 1,200,000"
+                className="mt-3 w-full bg-transparent text-3xl font-semibold tracking-[-0.04em] text-[#061b31] outline-none placeholder:text-[#aab7c4]"
+              />
+              <span className="mt-2 block text-sm leading-6 text-[#64748d]">
+                임대료, 관리비, 고정 인건비처럼 메뉴 하나에 직접 귀속하기 어려운 비용입니다. 전체 판매잔수 기준으로 잔당 {formatWon(result.fixedCostPerCup)}씩 배부됩니다.
+              </span>
+            </label>
+
+            <div className="mt-6 space-y-4">
+              {input.menus.map((menu, index) => (
+                <article key={menu.id} className="rounded-2xl border border-[#e5edf5] bg-white p-4 shadow-[rgba(23,23,23,0.05)_0px_14px_30px_-20px] sm:p-5">
+                  <div className="flex flex-col gap-3 border-b border-[#edf2f7] pb-4 sm:flex-row sm:items-center sm:justify-between">
+                    <label className="flex-1">
+                      <span className="text-xs font-bold text-[#64748d]">메뉴 {index + 1}</span>
+                      <input
+                        value={menu.menuName}
+                        onChange={(event) => updateMenuField(menu.id, "menuName", event.target.value)}
+                        type="text"
+                        placeholder="예: 바닐라 라떼"
+                        className="mt-1 w-full bg-transparent text-2xl font-semibold tracking-[-0.03em] text-[#061b31] outline-none placeholder:text-[#aab7c4]"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => removeMenu(menu.id)}
+                      disabled={input.menus.length <= 1}
+                      className="w-fit rounded-lg border border-[#ffd4d4] px-3 py-2 text-sm font-bold text-[#c23b3b] disabled:cursor-not-allowed disabled:border-[#e5edf5] disabled:text-[#aab7c4]"
+                    >
+                      삭제
+                    </button>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {menuFields.map((field) => (
+                      <label key={field.id} className={`${field.compact ? "" : ""} rounded-xl border border-[#d8e3ee] bg-white p-4 transition focus-within:border-[#533afd] focus-within:shadow-[rgba(83,58,253,0.16)_0px_14px_26px_-18px]`}>
                         <span className="flex items-center justify-between gap-3 text-sm font-bold text-[#273951]">
                           {field.label}
                           {field.suffix ? <span className="text-xs text-[#64748d]">{field.suffix}</span> : null}
                         </span>
                         <input
-                          value={formatInputValue(field.id, input[field.id])}
-                          onChange={(event) => updateField(field.id, event.target.value)}
+                          value={formatInputValue(menu[field.id])}
+                          onChange={(event) => updateMenuField(menu.id, field.id, event.target.value)}
                           type="text"
-                          inputMode={field.id === "menuName" ? "text" : "numeric"}
-                          placeholder={field.placeholder}
+                          inputMode="numeric"
+                          placeholder="0"
                           className="mt-3 w-full bg-transparent text-xl font-semibold tracking-[-0.02em] text-[#061b31] outline-none placeholder:text-[#aab7c4]"
                         />
                         <span className="mt-2 block text-xs leading-5 text-[#64748d]">{field.helper}</span>
                       </label>
                     ))}
-                </div>
-              </div>
-            ))}
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <button type="button" onClick={addMenu} className="mt-5 w-full rounded-xl border border-dashed border-[#b9b9f9] bg-[#f7f7ff] px-4 py-4 text-sm font-black text-[#533afd] transition hover:bg-[#eeeeff]">
+              + 메뉴 추가하기
+            </button>
           </div>
 
           <aside className="space-y-5 lg:sticky lg:top-6 lg:self-start">
             <ResultPanel result={result} verdict={verdict} />
-            <ScenarioPanel result={result} />
+            <MenuBreakdownPanel menus={result.menus} />
           </aside>
         </div>
       </section>
@@ -314,12 +392,14 @@ export function CupMarginLanding() {
   );
 }
 
-function HeroResultCard({
+function HeroDashboard({
   result,
   verdict,
+  topMenu,
 }: {
-  result: ReturnType<typeof calculateCupMargin>;
-  verdict: (typeof verdictCopy)[keyof typeof verdictCopy];
+  result: MultiMenuMarginResult;
+  verdict: PortfolioVerdict;
+  topMenu?: MenuMarginResult;
 }) {
   return (
     <div className="relative">
@@ -328,43 +408,48 @@ function HeroResultCard({
         <div className="rounded-3xl bg-[#061b31] p-6 text-white">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm font-bold text-[#b9b9f9]">오늘의 샘플 결과</p>
-              <h2 className="mt-3 text-3xl font-light tracking-[-0.04em]">{result.menuName}</h2>
+              <p className="text-sm font-bold text-[#b9b9f9]">다중 메뉴 손익 대시보드</p>
+              <h2 className="mt-3 text-3xl font-light tracking-[-0.04em]">월 {formatWon(result.totalProfit)}</h2>
             </div>
-            <span className="rounded-md bg-[#15be53]/20 px-2 py-1 text-xs font-bold text-[#8bf0b1]">자동 계산</span>
+            <span className="rounded-md bg-[#15be53]/20 px-2 py-1 text-xs font-bold text-[#8bf0b1]">자동 배부</span>
           </div>
           <div className="mt-8 grid grid-cols-2 gap-3">
-            <Metric label="한 잔 남는 돈" value={formatWon(result.profitPerCup)} dark />
-            <Metric label="마진율" value={formatPercent(result.marginRate)} dark />
-            <Metric label="월 예상 이익" value={formatWon(result.monthlyProfit)} dark />
-            <Metric label="고정비 회수" value={result.breakEvenCups ? `${formatNumber(result.breakEvenCups)}잔` : "계산 불가"} dark />
+            <Metric label="총 월매출" value={formatWon(result.totalRevenue)} dark />
+            <Metric label="총 판매잔수" value={`${formatNumber(result.totalMonthlyCups)}잔`} dark />
+            <Metric label="잔당 고정비" value={formatWon(result.fixedCostPerCup)} dark />
+            <Metric label="통합 마진율" value={formatPercent(result.blendedMarginRate)} dark />
           </div>
           <div className={`mt-5 rounded-xl border px-4 py-4 ${verdict.className}`}>
             <p className="text-sm font-black">{verdict.label} · {verdict.title}</p>
             <p className="mt-1 text-sm leading-6 opacity-80">{verdict.description}</p>
           </div>
+          {topMenu ? (
+            <div className="mt-5 rounded-2xl bg-white/10 p-4">
+              <p className="text-xs font-bold text-white/60">가장 많이 남는 메뉴</p>
+              <div className="mt-2 flex items-end justify-between gap-4">
+                <p className="text-xl font-light tracking-[-0.03em]">{topMenu.menuName}</p>
+                <p className="text-sm text-white/70">월 {formatWon(topMenu.monthlyProfit)}</p>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-function ResultPanel({
-  result,
-  verdict,
-}: {
-  result: ReturnType<typeof calculateCupMargin>;
-  verdict: (typeof verdictCopy)[keyof typeof verdictCopy];
-}) {
+function ResultPanel({ result, verdict }: { result: MultiMenuMarginResult; verdict: PortfolioVerdict }) {
   return (
     <div className="rounded-3xl border border-[#e5edf5] bg-white p-6 shadow-[rgba(50,50,93,0.18)_0px_30px_45px_-34px,rgba(0,0,0,0.08)_0px_18px_36px_-24px]">
-      <p className="text-sm font-bold text-[#533afd]">계산 결과</p>
-      <h2 className="mt-2 text-3xl font-light tracking-[-0.04em] text-[#061b31]">{result.menuName} 컵마진</h2>
+      <p className="text-sm font-bold text-[#533afd]">전체 계산 결과</p>
+      <h2 className="mt-2 text-3xl font-light tracking-[-0.04em] text-[#061b31]">이번 달 예상 손익</h2>
       <div className="mt-6 grid grid-cols-2 gap-3">
-        <Metric label="판매가" value={formatWon(result.revenuePerCup)} />
-        <Metric label="한 잔 총비용" value={formatWon(result.totalCostPerCup)} />
-        <Metric label="한 잔 남는 돈" value={formatWon(result.profitPerCup)} emphasis />
-        <Metric label="마진율" value={formatPercent(result.marginRate)} emphasis />
+        <Metric label="총 월매출" value={formatWon(result.totalRevenue)} />
+        <Metric label="총 변동비" value={formatWon(result.totalVariableCost)} />
+        <Metric label="월 고정비" value={formatWon(result.totalFixedCost)} />
+        <Metric label="월 예상 이익" value={formatWon(result.totalProfit)} emphasis />
+        <Metric label="잔당 고정비" value={formatWon(result.fixedCostPerCup)} />
+        <Metric label="통합 마진율" value={formatPercent(result.blendedMarginRate)} emphasis />
       </div>
       <div className={`mt-5 rounded-xl border px-4 py-4 ${verdict.className}`}>
         <p className="font-black">{verdict.title}</p>
@@ -374,19 +459,24 @@ function ResultPanel({
   );
 }
 
-function ScenarioPanel({ result }: { result: ReturnType<typeof calculateCupMargin> }) {
+function MenuBreakdownPanel({ menus }: { menus: MenuMarginResult[] }) {
   return (
     <div className="rounded-3xl border border-[#e5edf5] bg-white p-6 shadow-[rgba(23,23,23,0.06)_0px_18px_44px_-28px]">
-      <h3 className="text-2xl font-light tracking-[-0.03em] text-[#061b31]">가격을 올리면?</h3>
+      <h3 className="text-2xl font-light tracking-[-0.03em] text-[#061b31]">메뉴별 손익</h3>
       <div className="mt-4 space-y-3">
-        {result.scenarios.map((scenario) => (
-          <div key={scenario.label} className="rounded-2xl border border-[#e5edf5] bg-[#f8fbff] p-4">
-            <div className="flex items-center justify-between gap-4">
-              <p className="font-bold text-[#533afd]">{scenario.label}</p>
-              <p className="text-sm text-[#64748d]">판매가 {formatWon(scenario.salePrice)}</p>
+        {menus.map((menu) => (
+          <div key={menu.id} className="rounded-2xl border border-[#e5edf5] bg-[#f8fbff] p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-bold text-[#061b31]">{menu.menuName || "이름 없는 메뉴"}</p>
+                <p className="mt-1 text-xs text-[#64748d]">{formatNumber(menu.expectedMonthlyCups)}잔 · 고정비 {formatWon(menu.fixedCostShare)} 배부</p>
+              </div>
+              <span className={`rounded-md px-2 py-1 text-xs font-bold ${menu.profitPerCup <= 0 ? "bg-rose-100 text-rose-700" : menu.marginRate < 20 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
+                {menu.profitPerCup <= 0 ? "손실" : menu.marginRate < 20 ? "주의" : "양호"}
+              </span>
             </div>
-            <p className="mt-2 text-2xl font-light tracking-[-0.03em] text-[#061b31]">{formatWon(scenario.profitPerCup)} / 잔</p>
-            <p className="text-sm text-[#64748d]">마진율 {formatPercent(scenario.marginRate)} · 월 {formatWon(scenario.monthlyProfit)}</p>
+            <p className="mt-3 text-2xl font-light tracking-[-0.03em] text-[#061b31]">{formatWon(menu.profitPerCup)} / 잔</p>
+            <p className="text-sm leading-6 text-[#64748d]">월 {formatWon(menu.monthlyProfit)} · 마진율 {formatPercent(menu.marginRate)} · 500원 인상 시 월 {formatWon(menu.priceUpMonthlyProfit)}</p>
           </div>
         ))}
       </div>
@@ -403,8 +493,42 @@ function Metric({ label, value, emphasis = false, dark = false }: { label: strin
   );
 }
 
-function SectionEyebrow({ children }: { children: React.ReactNode }) {
+function SectionEyebrow({ children }: { children: ReactNode }) {
   return <p className="text-sm font-bold text-[#533afd]">{children}</p>;
+}
+
+type PortfolioVerdict = {
+  label: string;
+  title: string;
+  description: string;
+  className: string;
+};
+
+function getPortfolioVerdict(result: MultiMenuMarginResult): PortfolioVerdict {
+  if (result.totalProfit <= 0 || result.blendedMarginRate < 8) {
+    return {
+      label: "위험",
+      title: "가게 전체로 보면 남는 돈이 부족해요",
+      description: "고정 운영비까지 나누어 보면 손실이거나 마진이 낮습니다. 판매가, 레시피, 폐기율, 판매량 가정을 먼저 점검하세요.",
+      className: "border-rose-200 bg-rose-50 text-rose-900",
+    };
+  }
+
+  if (result.blendedMarginRate < 20) {
+    return {
+      label: "주의",
+      title: "팔리지만 여유가 얇은 구조예요",
+      description: "전체 마진이 얇은 편입니다. 월 판매잔수가 큰 메뉴부터 원가와 가격 인상 시나리오를 확인해보세요.",
+      className: "border-amber-200 bg-amber-50 text-amber-900",
+    };
+  }
+
+  return {
+    label: "양호",
+    title: "현재 입력값 기준으로 운영 여유가 있어요",
+    description: "메뉴별 월 이익을 비교해 많이 남는 메뉴는 더 밀고, 마진이 얇은 메뉴는 가격이나 레시피를 조정해볼 수 있습니다.",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-900",
+  };
 }
 
 function parseNumberInput(value: string) {
@@ -412,8 +536,15 @@ function parseNumberInput(value: string) {
   return normalized ? Number(normalized) : 0;
 }
 
-function formatInputValue(id: keyof CupMarginInput, value: CupMarginInput[keyof CupMarginInput]) {
-  if (id === "menuName") return String(value);
-  if (typeof value !== "number" || value === 0) return "";
+function formatInputValue(value: string | number) {
+  if (typeof value === "string") return value;
+  if (!Number.isFinite(value) || value === 0) return "";
   return formatNumber(value);
+}
+
+function cloneInput(input: MultiMenuMarginInput): MultiMenuMarginInput {
+  return {
+    monthlyFixedCost: input.monthlyFixedCost,
+    menus: input.menus.map((menu) => ({ ...menu })),
+  };
 }

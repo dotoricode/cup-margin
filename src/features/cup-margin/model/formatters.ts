@@ -1,9 +1,5 @@
 export function formatWon(value: number) {
-  return new Intl.NumberFormat("ko-KR", {
-    style: "currency",
-    currency: "KRW",
-    maximumFractionDigits: 0,
-  }).format(value);
+  return `${formatNumber(value)}원`;
 }
 
 export function formatNumber(value: number) {
