@@ -62,14 +62,22 @@ const problemCards = [
 
 export function CupMarginLanding() {
   const [input, setInput] = useState<CupMarginInput>(DEFAULT_MARGIN_INPUT);
+  const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
   const result = useMemo(() => calculateCupMargin(input), [input]);
   const verdict = verdictCopy[result.verdict];
 
   function updateField(id: keyof CupMarginInput, rawValue: string) {
     setInput((current) => ({
       ...current,
-      [id]: id === "menuName" ? rawValue : Number(rawValue),
+      [id]: id === "menuName" ? rawValue : parseNumberInput(rawValue),
     }));
+  }
+
+  function submitWaitlist(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!waitlistEmail.trim()) return;
+    setWaitlistSubmitted(true);
   }
 
   return (
@@ -90,8 +98,8 @@ export function CupMarginLanding() {
               <a href="#calculator" className="hover:text-[#533afd]">무료 계산</a>
               <a href="#pricing" className="hover:text-[#533afd]">가격</a>
             </div>
-            <a href="#calculator" className="rounded-lg bg-[#533afd] px-4 py-2.5 text-sm font-bold text-white shadow-[rgba(83,58,253,0.35)_0px_14px_28px_-14px] transition hover:bg-[#4434d4]">
-              무료로 시작
+            <a href="#waitlist" className="rounded-lg bg-[#533afd] px-4 py-2.5 text-sm font-bold text-white shadow-[rgba(83,58,253,0.35)_0px_14px_28px_-14px] transition hover:bg-[#4434d4]">
+              출시 알림 받기
             </a>
           </nav>
 
@@ -188,10 +196,10 @@ export function CupMarginLanding() {
                           {field.suffix ? <span className="text-xs text-[#64748d]">{field.suffix}</span> : null}
                         </span>
                         <input
-                          value={input[field.id]}
+                          value={formatInputValue(field.id, input[field.id])}
                           onChange={(event) => updateField(field.id, event.target.value)}
-                          type={field.id === "menuName" ? "text" : "number"}
-                          min={field.id === "menuName" ? undefined : 0}
+                          type="text"
+                          inputMode={field.id === "menuName" ? "text" : "numeric"}
                           placeholder={field.placeholder}
                           className="mt-3 w-full bg-transparent text-xl font-semibold tracking-[-0.02em] text-[#061b31] outline-none placeholder:text-[#aab7c4]"
                         />
@@ -236,7 +244,7 @@ export function CupMarginLanding() {
                   ))}
                 </ul>
                 <a
-                  href="#calculator"
+                  href={plan.name === "무료 체험" ? "#calculator" : "#waitlist"}
                   className={`mt-7 block rounded-lg px-4 py-3 text-center text-sm font-bold shadow-[rgba(0,0,0,0.12)_0px_14px_28px_-18px] transition ${
                     plan.highlighted ? "bg-[#533afd] !text-white hover:bg-[#4434d4]" : "bg-[#533afd] !text-white hover:bg-[#4434d4]"
                   }`}
@@ -246,6 +254,40 @@ export function CupMarginLanding() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="waitlist" className="mx-auto w-full max-w-7xl px-5 pb-10 sm:px-8 lg:px-10">
+        <div className="grid gap-8 rounded-3xl border border-[#d6d9fc] bg-white p-6 shadow-[rgba(50,50,93,0.18)_0px_30px_60px_-38px] sm:p-8 lg:grid-cols-[0.82fr_1fr] lg:items-center">
+          <div>
+            <SectionEyebrow>출시 알림 받기</SectionEyebrow>
+            <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31] sm:text-5xl">여러 메뉴 저장 기능이 열리면 가장 먼저 알려드릴게요</h2>
+            <p className="mt-4 leading-7 text-[#64748d]">
+              지금은 무료 계산으로 검증하고, 베이직·스탠다드 플랜은 실제 사용 의향이 확인되면 연결합니다. 이메일은 현재 화면에서만 확인하는 임시 MVP 폼입니다.
+            </p>
+          </div>
+          <form onSubmit={submitWaitlist} className="rounded-2xl bg-[#f8fbff] p-4 sm:p-5">
+            <label className="block text-sm font-bold text-[#273951]" htmlFor="waitlist-email">이메일</label>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+              <input
+                id="waitlist-email"
+                type="email"
+                value={waitlistEmail}
+                onChange={(event) => {
+                  setWaitlistEmail(event.target.value);
+                  setWaitlistSubmitted(false);
+                }}
+                placeholder="owner@example.com"
+                className="min-h-12 flex-1 rounded-lg border border-[#d8e3ee] bg-white px-4 text-base font-medium text-[#061b31] outline-none transition focus:border-[#533afd]"
+              />
+              <button type="submit" className="rounded-lg bg-[#533afd] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#4434d4]">
+                출시 알림 받기
+              </button>
+            </div>
+            <p className="mt-3 text-sm leading-6 text-[#64748d]">
+              {waitlistSubmitted ? "알림 신청 의향을 확인했어요. 실제 저장/발송 기능은 다음 단계에서 연결합니다." : "스팸 없이 컵마진 베이직 오픈 소식만 받는 흐름으로 설계할 예정입니다."}
+            </p>
+          </form>
         </div>
       </section>
 
@@ -363,4 +405,15 @@ function Metric({ label, value, emphasis = false, dark = false }: { label: strin
 
 function SectionEyebrow({ children }: { children: React.ReactNode }) {
   return <p className="text-sm font-bold text-[#533afd]">{children}</p>;
+}
+
+function parseNumberInput(value: string) {
+  const normalized = value.replace(/[^0-9]/g, "");
+  return normalized ? Number(normalized) : 0;
+}
+
+function formatInputValue(id: keyof CupMarginInput, value: CupMarginInput[keyof CupMarginInput]) {
+  if (id === "menuName") return String(value);
+  if (typeof value !== "number" || value === 0) return "";
+  return formatNumber(value);
 }
