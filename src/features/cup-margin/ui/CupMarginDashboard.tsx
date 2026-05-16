@@ -59,7 +59,7 @@ export function CupMarginDashboard() {
             <div id="dashboard-mobile-navigation" className="mt-3 grid gap-2 rounded-2xl bg-[#f5f8fb] p-2 text-sm font-bold text-[#273951] sm:hidden">
               <Link href="/" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>랜딩으로 이동</Link>
               <Link href="/calculator" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>30초 계산기</Link>
-              <a href="#scenario" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>사용 시나리오</a>
+              <a href="#scenario" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>언제 쓰나요</a>
             </div>
           ) : null}
         </nav>
@@ -89,7 +89,7 @@ export function CupMarginDashboard() {
           <aside className="space-y-4 lg:sticky lg:top-5">
             <div className="rounded-[28px] bg-white p-5 shadow-[rgba(0,0,0,0.12)_0px_18px_55px_-32px]">
               <p className="text-sm font-bold text-[#0b2545]">가격과 판매량을 조정해보세요</p>
-              <p className="mt-2 text-sm leading-6 text-[#64748d]">아메리카노와 휘낭시에만 먼저 봅니다. 움직이면 결과와 그래프가 바로 바뀝니다.</p>
+              <p className="mt-2 text-sm leading-6 text-[#64748d]">음료·디저트·푸드 메뉴를 같이 봅니다. 움직이면 결과와 그래프가 바로 바뀝니다.</p>
               <div className="mt-5 space-y-5">
                 {input.menus.map((menu) => (
                   <MenuSliderCard key={menu.id} menu={menu} onChange={updateMenu} />
@@ -163,6 +163,11 @@ function MenuSliderCard({
   menu: MenuMarginInput;
   onChange: (menuId: string, field: "salePrice" | "expectedMonthlyCups", value: number) => void;
 }) {
+  const priceMin = Math.max(1500, Math.floor(menu.salePrice * 0.65 / 100) * 100);
+  const priceMax = Math.max(priceMin + 1000, Math.ceil(menu.salePrice * 1.45 / 100) * 100);
+  const volumeMin = Math.max(40, Math.floor(menu.expectedMonthlyCups * 0.35 / 10) * 10);
+  const volumeMax = Math.max(volumeMin + 100, Math.ceil(menu.expectedMonthlyCups * 1.65 / 10) * 10);
+
   return (
     <div className="rounded-3xl border border-[#e5edf5] bg-[#fbfcff] p-4">
       <div className="flex items-start justify-between gap-3">
@@ -176,26 +181,34 @@ function MenuSliderCard({
         판매가
         <input
           type="range"
-          min={menu.menuName.includes("아메리카노") ? 2500 : 2200}
-          max={menu.menuName.includes("아메리카노") ? 5000 : 5200}
+          min={priceMin}
+          max={priceMax}
           step={100}
           value={menu.salePrice}
           onChange={(event) => onChange(menu.id, "salePrice", Number(event.target.value))}
           className="mt-3 w-full accent-[#0071e3]"
         />
       </label>
+      <div className="mt-1 flex justify-between text-xs font-semibold text-[#86868b]">
+        <span>{formatWon(priceMin)}</span>
+        <span>{formatWon(priceMax)}</span>
+      </div>
       <label className="mt-4 block text-sm font-bold text-[#273951]">
         월 판매량: {formatNumber(menu.expectedMonthlyCups)}개
         <input
           type="range"
-          min={100}
-          max={1200}
-          step={20}
+          min={volumeMin}
+          max={volumeMax}
+          step={10}
           value={menu.expectedMonthlyCups}
           onChange={(event) => onChange(menu.id, "expectedMonthlyCups", Number(event.target.value))}
           className="mt-3 w-full accent-[#0071e3]"
         />
       </label>
+      <div className="mt-1 flex justify-between text-xs font-semibold text-[#86868b]">
+        <span>{formatNumber(volumeMin)}개</span>
+        <span>{formatNumber(volumeMax)}개</span>
+      </div>
     </div>
   );
 }

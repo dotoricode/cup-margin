@@ -72,7 +72,32 @@ export type PriceSimulationPoint = {
   profit: number;
   marginRate: number;
   costRate: number;
+  expectedSalesIndex: number;
   meetsTarget: boolean;
+};
+
+export type SalesSensitivity = "low" | "medium" | "high";
+
+export type PriceDecisionOptions = {
+  selectedPrice: number;
+  monthlyCups: number;
+  sensitivity: SalesSensitivity;
+};
+
+export type PriceDecisionSummary = {
+  recommendedReviewPrice: number;
+  selectedPrice: number;
+  currentMonthlyCups: number;
+  projectedMonthlyCups: number;
+  currentMonthlyProfit: number;
+  projectedMonthlyProfit: number;
+  monthlyProfitDelta: number;
+  selectedProfitPerCup: number;
+  expectedSalesIndex: number;
+  breakEvenSalesDropRate: number | null;
+  sensitivity: SalesSensitivity;
+  sensitivityLabel: string;
+  summary: string;
 };
 
 export type TradeAreaInput = {
@@ -160,6 +185,106 @@ export const DEFAULT_RECIPE_PRICING_PRODUCTS: ProductCostingInput[] = [
     laborCost: 350,
     allocatedFixedCost: 180,
   },
+  {
+    id: "cafe-latte",
+    name: "카페라떼",
+    category: "drink",
+    salePrice: 4800,
+    targetMarginRate: 58,
+    competitorAveragePrice: 5000,
+    ingredients: [
+      {
+        name: "원두",
+        purchasePrice: 28000,
+        purchaseQuantity: 1,
+        purchaseUnit: "kg",
+        baseUnit: "g",
+        recipeQuantity: 1,
+        recipeUnit: "shot",
+        customUnitAmount: 18,
+        lossRate: 3,
+      },
+      {
+        name: "우유",
+        purchasePrice: 3300,
+        purchaseQuantity: 1,
+        purchaseUnit: "L",
+        baseUnit: "ml",
+        recipeQuantity: 180,
+        recipeUnit: "ml",
+        lossRate: 2,
+      },
+    ],
+    packagingCost: 220,
+    laborCost: 320,
+    allocatedFixedCost: 260,
+  },
+  {
+    id: "strawberry-ade",
+    name: "딸기 에이드",
+    category: "drink",
+    salePrice: 6200,
+    targetMarginRate: 55,
+    competitorAveragePrice: 6500,
+    ingredients: [
+      {
+        name: "딸기 베이스",
+        purchasePrice: 17000,
+        purchaseQuantity: 1,
+        purchaseUnit: "kg",
+        baseUnit: "g",
+        recipeQuantity: 70,
+        recipeUnit: "g",
+        lossRate: 3,
+      },
+      {
+        name: "탄산수",
+        purchasePrice: 1100,
+        purchaseQuantity: 500,
+        purchaseUnit: "ml",
+        baseUnit: "ml",
+        recipeQuantity: 180,
+        recipeUnit: "ml",
+      },
+    ],
+    packagingCost: 260,
+    laborCost: 310,
+    allocatedFixedCost: 260,
+  },
+  {
+    id: "salt-bread",
+    name: "소금빵",
+    category: "bakery",
+    salePrice: 3800,
+    targetMarginRate: 52,
+    competitorAveragePrice: 4000,
+    batchYieldCount: 30,
+    batchLossRate: 6,
+    defectiveCount: 1,
+    ingredients: [
+      {
+        name: "강력분·버터·소금",
+        purchasePrice: 7600,
+        purchaseQuantity: 1,
+        purchaseUnit: "kg",
+        baseUnit: "g",
+        recipeQuantity: 850,
+        recipeUnit: "g",
+      },
+      {
+        name: "이스트·설탕",
+        purchasePrice: 4200,
+        purchaseQuantity: 1,
+        purchaseUnit: "kg",
+        baseUnit: "g",
+        recipeQuantity: 90,
+        recipeUnit: "g",
+      },
+    ],
+    packagingCost: 130,
+    laborCost: 420,
+    allocatedFixedCost: 210,
+  },
 ];
 
 export const DEFAULT_TRADE_AREA: TradeAreaInput = {
@@ -228,16 +353,68 @@ export function generatePriceSimulation(
 
   for (let price = minPrice; price <= maxPrice; price += step) {
     const profit = roundWon(price - product.totalCost);
+    const marginRate = price > 0 ? roundRate((profit / price) * 100) : 0;
     points.push({
       price,
       profit,
-      marginRate: price > 0 ? roundRate((profit / price) * 100) : 0,
+      marginRate,
       costRate: price > 0 ? roundRate((product.totalCost / price) * 100) : 0,
-      meetsTarget: price > 0 ? (profit / price) * 100 >= product.targetMarginRate : false,
+      expectedSalesIndex: estimateSalesIndex(product.salePrice, price),
+      meetsTarget: marginRate >= product.targetMarginRate,
     });
   }
 
   return points;
+}
+
+export function estimateSalesIndex(basePrice: number, nextPrice: number, sensitivity: SalesSensitivity = "medium") {
+  const safeBasePrice = Math.max(1, safeNumber(basePrice));
+  const safeNextPrice = Math.max(1, safeNumber(nextPrice));
+  const priceRatio = safeBasePrice / safeNextPrice;
+  const exponentBySensitivity: Record<SalesSensitivity, number> = {
+    low: 0.75,
+    medium: 1.15,
+    high: 1.6,
+  };
+  return Math.max(45, Math.min(140, Math.round(100 * priceRatio ** exponentBySensitivity[sensitivity])));
+}
+
+export function buildPriceDecision(product: ProductCostingResult, options: PriceDecisionOptions): PriceDecisionSummary {
+  const selectedPrice = safeNumber(options.selectedPrice);
+  const currentMonthlyCups = Math.max(0, Math.round(safeNumber(options.monthlyCups)));
+  const selectedProfitPerCup = roundWon(selectedPrice - product.totalCost);
+  const expectedSalesIndex = estimateSalesIndex(product.salePrice, selectedPrice, options.sensitivity);
+  const projectedMonthlyCups = Math.round(currentMonthlyCups * (expectedSalesIndex / 100));
+  const currentMonthlyProfit = roundWon(product.profit * currentMonthlyCups);
+  const projectedMonthlyProfit = roundWon(selectedProfitPerCup * projectedMonthlyCups);
+  const monthlyProfitDelta = roundWon(projectedMonthlyProfit - currentMonthlyProfit);
+  const possibleMonthlyProfitBeforeDrop = selectedProfitPerCup * currentMonthlyCups;
+  const breakEvenSalesDropRate =
+    selectedProfitPerCup > 0 && possibleMonthlyProfitBeforeDrop > 0
+      ? roundRate(Math.max(0, 100 - (currentMonthlyProfit / possibleMonthlyProfitBeforeDrop) * 100))
+      : null;
+  const sensitivityLabel: Record<SalesSensitivity, string> = {
+    low: "민감도 낮음",
+    medium: "민감도 보통",
+    high: "민감도 높음",
+  };
+  const deltaLabel = monthlyProfitDelta >= 0 ? "증가" : "감소";
+
+  return {
+    recommendedReviewPrice: roundUpToHundred(product.recommendedPrice),
+    selectedPrice,
+    currentMonthlyCups,
+    projectedMonthlyCups,
+    currentMonthlyProfit,
+    projectedMonthlyProfit,
+    monthlyProfitDelta,
+    selectedProfitPerCup,
+    expectedSalesIndex,
+    breakEvenSalesDropRate,
+    sensitivity: options.sensitivity,
+    sensitivityLabel: sensitivityLabel[options.sensitivity],
+    summary: `월 ${Math.abs(monthlyProfitDelta).toLocaleString("ko-KR")}원 ${deltaLabel} 예상`,
+  };
 }
 
 export function summarizeTradeArea(input: TradeAreaInput): TradeAreaSummary {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildPriceDecision,
   calculateProductCost,
   generatePriceSimulation,
   summarizeTradeArea,
@@ -125,13 +126,44 @@ describe("calculateProductCost", () => {
 });
 
 describe("generatePriceSimulation", () => {
-  it("좌우 가격 슬라이더용 가격별 마진·원가율·목표 달성 데이터를 만든다", () => {
+  it("좌우 가격 슬라이더용 가격별 마진율·예상 판매량·목표 달성 데이터를 만든다", () => {
     const product = calculateProductCost(latte);
     const points = generatePriceSimulation(product, { minPrice: 5000, maxPrice: 7000, step: 500 });
 
     expect(points).toHaveLength(5);
-    expect(points[0]).toMatchObject({ price: 5000, profit: 2326, marginRate: 46.5, meetsTarget: false });
-    expect(points[4]).toMatchObject({ price: 7000, profit: 4326, marginRate: 61.8, meetsTarget: true });
+    expect(points[0]).toMatchObject({ price: 5000, profit: 2326, marginRate: 46.5, expectedSalesIndex: 112, meetsTarget: false });
+    expect(points[1]).toMatchObject({ price: 5500, expectedSalesIndex: 100 });
+    expect(points[4]).toMatchObject({ price: 7000, profit: 4326, marginRate: 61.8, expectedSalesIndex: 76, meetsTarget: true });
+  });
+});
+
+describe("buildPriceDecision", () => {
+  it("목표 마진 기준 추천 검토가와 월 이익 변화, 판매량 감소 허용폭을 계산한다", () => {
+    const product = calculateProductCost(latte);
+    const decision = buildPriceDecision(product, {
+      selectedPrice: 6700,
+      monthlyCups: 600,
+      sensitivity: "medium",
+    });
+
+    expect(decision.recommendedReviewPrice).toBe(6700);
+    expect(decision.currentMonthlyProfit).toBe(1695600);
+    expect(decision.projectedMonthlyCups).toBe(480);
+    expect(decision.projectedMonthlyProfit).toBe(1932480);
+    expect(decision.monthlyProfitDelta).toBe(236880);
+    expect(decision.breakEvenSalesDropRate).toBe(29.8);
+    expect(decision.summary).toContain("월 236,880원 증가");
+  });
+
+  it("판매량 민감도가 높으면 같은 가격에서도 더 보수적인 월 이익을 보여준다", () => {
+    const product = calculateProductCost(latte);
+    const low = buildPriceDecision(product, { selectedPrice: 6700, monthlyCups: 600, sensitivity: "low" });
+    const high = buildPriceDecision(product, { selectedPrice: 6700, monthlyCups: 600, sensitivity: "high" });
+
+    expect(low.projectedMonthlyCups).toBe(516);
+    expect(high.projectedMonthlyCups).toBe(438);
+    expect(high.projectedMonthlyProfit).toBeLessThan(low.projectedMonthlyProfit);
+    expect(high.sensitivityLabel).toBe("민감도 높음");
   });
 });
 
