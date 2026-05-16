@@ -62,13 +62,13 @@ export type MultiMenuMarginResult = {
 };
 
 export const DEFAULT_MULTI_MENU_INPUT: MultiMenuMarginInput = {
-  monthlyFixedCost: 1200000,
+  monthlyFixedCost: 900000,
   menus: [
     {
       id: "americano",
       menuName: "아메리카노",
-      salePrice: 4500,
-      ingredientCost: 850,
+      salePrice: 3500,
+      ingredientCost: 520,
       packagingCost: 180,
       platformFeeRate: 0,
       wasteRate: 2,
@@ -77,28 +77,16 @@ export const DEFAULT_MULTI_MENU_INPUT: MultiMenuMarginInput = {
       expectedMonthlyCups: 900,
     },
     {
-      id: "vanilla-latte",
-      menuName: "바닐라 라떼",
-      salePrice: 5500,
-      ingredientCost: 1850,
-      packagingCost: 250,
+      id: "financier",
+      menuName: "휘낭시에",
+      salePrice: 3200,
+      ingredientCost: 820,
+      packagingCost: 120,
       platformFeeRate: 0,
-      wasteRate: 3,
+      wasteRate: 5,
       laborCostPerCup: 350,
       extraCost: 0,
-      expectedMonthlyCups: 520,
-    },
-    {
-      id: "strawberry-latte",
-      menuName: "딸기 라떼",
-      salePrice: 6200,
-      ingredientCost: 2650,
-      packagingCost: 300,
-      platformFeeRate: 0,
-      wasteRate: 8,
-      laborCostPerCup: 420,
-      extraCost: 0,
-      expectedMonthlyCups: 240,
+      expectedMonthlyCups: 360,
     },
   ],
 };
