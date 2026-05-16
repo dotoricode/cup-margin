@@ -62,3 +62,18 @@ label {
   background: #d6d9fc;
   color: #061b31;
 }
+
+@keyframes soft-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.soft-slide-in {
+  animation: soft-slide-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}

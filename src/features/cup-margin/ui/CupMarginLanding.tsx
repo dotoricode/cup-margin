@@ -248,16 +248,17 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
             <div className="hidden items-center gap-6 text-sm font-semibold text-[#273951] md:flex">
               {testPage ? (
                 <>
-                  <a href="#recipe-pricing" className="hover:text-[#0b2545]">메뉴·가격 조정</a>
-                  <a href="#demo" className="hover:text-[#0b2545]">가격 그래프</a>
-                  <Link href="/dashboard" className="hover:text-[#0b2545]">계산 결과 예시</Link>
+                  <Link href="/" className="hover:text-[#0b2545]">랜딩으로</Link>
+                  <button type="button" onClick={() => setMobileCalculatorView("result")} className="hover:text-[#0b2545]">남는 돈 보기</button>
+                  <button type="button" onClick={() => setMobileCalculatorView("adjust")} className="hover:text-[#0b2545]">가격 바꾸기</button>
+                  <button type="button" onClick={() => setMobileCalculatorView("details")} className="hover:text-[#0b2545]">계산 근거</button>
                 </>
               ) : (
                 <>
                   <a href="#top" className="hover:text-[#0b2545]">서비스 소개</a>
-                  <a href="#why" className="hover:text-[#0b2545]">언제 쓰나요</a>
-                  <Link href="/dashboard" className="hover:text-[#0b2545]">계산 결과 예시</Link>
-                  <a href="#pricing" className="hover:text-[#0b2545]">가격</a>
+                  <Link href="/calculator" className="hover:text-[#0b2545]">바로 계산하기</Link>
+                  <a href="#pricing" className="hover:text-[#0b2545]">요금 안내</a>
+                  <a href="#waitlist" className="hover:text-[#0b2545]">출시 알림</a>
                 </>
               )}
             </div>
@@ -282,15 +283,22 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
             </button>
             </div>
             {navOpen ? (
-              <div id="mobile-navigation" className="mt-3 grid gap-2 rounded-2xl bg-[#f5f8fb] p-2 text-sm font-bold text-[#273951] md:hidden">
-                <Link href="/" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>서비스 소개</Link>
-                <a href={testPage ? "#recipe-pricing" : "#why"} className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>{testPage ? "메뉴·가격 조정" : "언제 쓰나요"}</a>
+              <div id="mobile-navigation" className="soft-slide-in mt-3 grid origin-top gap-2 rounded-2xl bg-[#f5f8fb] p-2 text-sm font-bold text-[#273951] shadow-inner transition-all duration-300 ease-out md:hidden">
                 {testPage ? (
-                  <a href="#demo" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>가격 그래프</a>
+                  <>
+                    <Link href="/" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>랜딩으로</Link>
+                    <button type="button" className="rounded-xl bg-white px-4 py-3 text-left shadow-sm" onClick={() => { setMobileCalculatorView("result"); setNavOpen(false); }}>남는 돈 보기</button>
+                    <button type="button" className="rounded-xl bg-white px-4 py-3 text-left shadow-sm" onClick={() => { setMobileCalculatorView("adjust"); setNavOpen(false); }}>가격 바꾸기</button>
+                    <button type="button" className="rounded-xl bg-white px-4 py-3 text-left shadow-sm" onClick={() => { setMobileCalculatorView("details"); setNavOpen(false); }}>계산 근거</button>
+                  </>
                 ) : (
-                  <Link href="/calculator" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>메뉴·가격 조정</Link>
+                  <>
+                    <a href="#top" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>서비스 소개</a>
+                    <Link href="/calculator" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>바로 계산하기</Link>
+                    <a href="#pricing" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>요금 안내</a>
+                    <a href="#waitlist" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>출시 알림</a>
+                  </>
                 )}
-                <Link href="/dashboard" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>계산 결과 예시</Link>
               </div>
             ) : null}
           </nav>
@@ -310,14 +318,14 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                   <span className="block">사장님이 가격표를 쓰기 전에 손해 가능성을 줄여주는 계산 서비스입니다.</span>
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <a href="#why" className="rounded-lg bg-[#0b2545] px-6 py-4 text-center text-base font-bold text-white shadow-[rgba(50,50,93,0.25)_0px_30px_45px_-30px,rgba(0,0,0,0.1)_0px_18px_36px_-18px] transition hover:-translate-y-0.5 hover:bg-[#123a63]">
-                    언제 쓰는지 보기
-                  </a>
+                  <Link href="/calculator" className="rounded-lg bg-[#0b2545] px-6 py-4 text-center text-base font-bold text-white shadow-[rgba(50,50,93,0.25)_0px_30px_45px_-30px,rgba(0,0,0,0.1)_0px_18px_36px_-18px] transition hover:-translate-y-0.5 hover:bg-[#123a63]">
+                    바로 계산해보기
+                  </Link>
                   <a
-                    href="/dashboard"
+                    href="#pricing"
                     className="rounded-lg border border-[#9fb3cc] bg-white px-6 py-4 text-center text-base font-bold text-[#0b2545] transition hover:-translate-y-0.5 hover:bg-[#f3f7fb]"
                   >
-                    무료로 이용해보기
+                    요금 안내 보기
                   </a>
                 </div>
               </div>
@@ -540,12 +548,12 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                   ))}
                 </ul>
                 <a
-                  href={plan.name === "무료 체험" ? "/dashboard" : "#waitlist"}
+                  href={plan.name === "무료 체험" ? "/calculator" : "#waitlist"}
                   className={`mt-7 block rounded-lg px-4 py-3 text-center text-sm font-bold shadow-[rgba(0,0,0,0.12)_0px_14px_28px_-18px] transition ${
                     plan.highlighted ? "bg-[#0b2545] !text-white hover:bg-[#123a63]" : "bg-[#0b2545] !text-white hover:bg-[#123a63]"
                   }`}
                 >
-                  {plan.name === "무료 체험" ? "무료로 이용해보기" : `${plan.name} 출시 알림 받기`}
+                  {plan.name === "무료 체험" ? "바로 계산해보기" : `${plan.name} 출시 알림 받기`}
                 </a>
               </div>
             ))}
@@ -648,8 +656,8 @@ function CalculatorUseGuide() {
 
   return (
     <div className="rounded-[26px] border border-[#dce7f2] bg-white p-4 shadow-[rgba(11,37,69,0.10)_0px_18px_50px_-34px] sm:p-5">
-      <p className="text-sm font-black text-[#0b2545]">30초 계산기</p>
-      <h2 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.04em] text-[#061b31] sm:text-2xl">가격을 올려도 이익이 늘어나는지 30초 만에 확인하세요.</h2>
+      <p className="text-sm font-black text-[#0b2545]">이럴 때 확인하세요</p>
+      <h2 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.04em] text-[#061b31] sm:text-2xl">가격표 쓰기 전, 한 잔에 얼마 남는지 먼저 보세요.</h2>
       <div className="mt-4 hidden gap-2 sm:grid sm:grid-cols-3">
         {steps.map((step) => (
           <div key={step.title} className="rounded-2xl bg-[#f5f8fb] p-3">
@@ -659,11 +667,11 @@ function CalculatorUseGuide() {
         ))}
       </div>
       <div className="mt-3 rounded-2xl bg-[#eef7ff] px-4 py-3 text-sm font-semibold leading-6 text-[#0b2545] sm:hidden">
-        <p className="font-black">언제 쓰나요?</p>
-        <p className="mt-1">가격표 작성 전, 원재료값 인상 후, 신메뉴 소량 테스트 전에 바로 확인하세요.</p>
+        <p className="font-black">추천 상황</p>
+        <p className="mt-1">가격표 작성 전, 원재료값 인상 후, 신메뉴 소량 테스트 전에 확인하세요.</p>
       </div>
       <p className="mt-3 hidden rounded-2xl bg-[#eef7ff] px-4 py-3 text-sm font-semibold leading-6 text-[#0b2545] sm:block">
-        사용 시점: 오픈 전 가격표 작성, 원두값 인상 후 재검토, 신메뉴 소량 테스트 전에 씁니다. 추천 검토가와 월 이익 변화를 함께 보고 가격을 결정하세요.
+        오픈 전 가격표 작성, 원두값 인상 후 재검토, 신메뉴 소량 테스트 전에 씁니다. 현재 가격의 잔당 이익과 가격 변경 시 월 이익 변화를 함께 보세요.
       </p>
     </div>
   );
@@ -739,13 +747,14 @@ function RecipePricingSection({
           </div>
         ) : null}
 
-        {compact && showResultOnMobile ? <CalculatorUseGuide /> : null}
-
         {compact ? (
-          <MobileCalculatorTabs currentView={mobileView} onChangeView={onChangeMobileView} />
+          <>
+            <CurrentMenuSummary productName={simulatedProduct.name} selectedPrice={selectedPrice} mobileView={mobileView} />
+            <MobileCalculatorTabs currentView={mobileView} onChangeView={onChangeMobileView} />
+          </>
         ) : null}
 
-        <div className={`${compact && showResultOnMobile ? "hidden sm:grid" : "grid"} ${compact ? "mt-4" : "mt-8"} gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start`}>
+        <div key={compact ? mobileView : "desktop"} className={`soft-slide-in grid ${compact ? "mt-4" : "mt-8"} gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start`}>
           <div className={`${compact && showDetailsOnMobile ? "hidden sm:block" : ""} w-full max-w-full rounded-[28px] bg-white p-4 shadow-[rgba(0,0,0,0.12)_0px_18px_55px_-32px] sm:rounded-[32px] sm:p-7`}>
             <div className={`${compact && !showAdjustOnMobile ? "hidden sm:block" : ""}`}>
               <label className="block text-sm font-semibold tracking-[-0.01em] text-[#6e6e73]" htmlFor="recipe-product">
@@ -792,7 +801,12 @@ function RecipePricingSection({
             </div>
 
             {compact && showResultOnMobile ? (
-              <SaveCalculatorCard onSave={onSaveCalculator} message={saveMessage} />
+              <>
+                <SaveCalculatorCard onSave={onSaveCalculator} message={saveMessage} />
+                <div className="mt-4 sm:hidden">
+                  <CalculatorUseGuide />
+                </div>
+              </>
             ) : null}
 
             <div className={`${compact && !showAdjustOnMobile ? "hidden sm:block" : ""} mt-5`}>
@@ -858,6 +872,31 @@ function RecipePricingSection({
   );
 }
 
+function CurrentMenuSummary({
+  productName,
+  selectedPrice,
+  mobileView,
+}: {
+  productName: string;
+  selectedPrice: number;
+  mobileView: MobileCalculatorView;
+}) {
+  const label = mobileView === "result" ? "남는 돈 확인 중" : mobileView === "adjust" ? "가격 조정 중" : "계산 근거 확인 중";
+
+  return (
+    <div className="mt-4 flex items-center justify-between gap-3 rounded-[22px] border border-[#e5edf5] bg-white px-4 py-3 shadow-[rgba(11,37,69,0.10)_0px_14px_34px_-26px] transition-all duration-300 ease-out sm:hidden">
+      <div className="min-w-0">
+        <p className="text-xs font-black text-[#64748d]">{label}</p>
+        <p className="mt-0.5 truncate text-lg font-semibold tracking-[-0.03em] text-[#061b31]">{productName}</p>
+      </div>
+      <div className="shrink-0 rounded-2xl bg-[#f5f8fb] px-3 py-2 text-right">
+        <p className="text-[11px] font-bold text-[#64748d]">선택가</p>
+        <p className="text-sm font-black text-[#0b2545]">{formatWon(selectedPrice)}</p>
+      </div>
+    </div>
+  );
+}
+
 function MobileCalculatorTabs({
   currentView,
   onChangeView,
@@ -866,20 +905,20 @@ function MobileCalculatorTabs({
   onChangeView?: (view: MobileCalculatorView) => void;
 }) {
   const tabs: Array<{ id: MobileCalculatorView; label: string; helper: string }> = [
-    { id: "result", label: "결과", helper: "추천가·월이익" },
-    { id: "adjust", label: "메뉴·가격", helper: "조정" },
-    { id: "details", label: "근거", helper: "상세" },
+    { id: "result", label: "남는 돈", helper: "현재 가격 기준" },
+    { id: "adjust", label: "가격 바꾸기", helper: "판매가 조정" },
+    { id: "details", label: "계산 근거", helper: "원가·수수료" },
   ];
 
   return (
-    <div className="sticky top-2 z-20 mt-4 rounded-[24px] border border-black/5 bg-white/92 p-2 shadow-[rgba(0,0,0,0.12)_0px_14px_34px_-22px] backdrop-blur sm:hidden">
+    <div className="sticky top-2 z-20 mt-3 rounded-[24px] border border-black/5 bg-white/92 p-2 shadow-[rgba(0,0,0,0.12)_0px_14px_34px_-22px] backdrop-blur sm:hidden">
       <div className="grid grid-cols-3 gap-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => onChangeView?.(tab.id)}
-            className={`min-h-14 rounded-2xl px-2 py-2 text-center transition ${
+            className={`min-h-14 rounded-2xl px-2 py-2 text-center transition-all duration-300 ease-out ${
               currentView === tab.id ? "bg-[#1d1d1f] text-white" : "bg-[#f5f5f7] text-[#1d1d1f]"
             }`}
             aria-pressed={currentView === tab.id}
@@ -1003,7 +1042,7 @@ function OwnerDemoCard({
 }) {
   return (
     <div id="demo" className={`${compact ? "mt-4" : ""} w-full max-w-full rounded-[28px] bg-white p-5 shadow-[rgba(0,0,0,0.1)_0px_18px_50px_-34px]`}>
-      {showEyebrow ? <p className="text-sm font-semibold text-[#6e6e73]">언제 쓰나요?</p> : null}
+      {showEyebrow ? <p className="text-sm font-semibold text-[#6e6e73]">샘플 계산 흐름</p> : null}
       <h3 className={`${showEyebrow ? "mt-2" : ""} text-2xl font-semibold leading-tight tracking-[-0.04em] text-[#1d1d1f]`}>가격표 만들기 전 30초 확인</h3>
       {decision ? (
         <div className="mt-4 rounded-2xl bg-[#eef5fb] p-4">
