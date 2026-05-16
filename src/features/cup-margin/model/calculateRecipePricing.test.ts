@@ -155,6 +155,32 @@ describe("buildPriceDecision", () => {
     expect(decision.summary).toContain("월 236,880원 증가");
   });
 
+  it("매장·포장·배달 채널 비용을 반영해 월 이익과 손익분기 판매량을 보수적으로 계산한다", () => {
+    const product = calculateProductCost(latte);
+    const decision = buildPriceDecision(product, {
+      selectedPrice: 6700,
+      monthlyCups: 600,
+      sensitivity: "medium",
+      channelMix: {
+        storeRate: 60,
+        takeawayRate: 25,
+        deliveryRate: 15,
+        cardFeeRate: 2,
+        deliveryFeeRate: 15,
+        deliveryExtraPackagingCost: 250,
+      },
+      simulationRange: { minPrice: 5000, maxPrice: 7500, step: 500 },
+    });
+
+    expect(decision.channelCostPerCup).toBe(322);
+    expect(decision.currentMonthlyProfit).toBe(1533000);
+    expect(decision.projectedMonthlyProfit).toBe(1777920);
+    expect(decision.breakEvenMonthlyCups).toBe(414);
+    expect(decision.breakEvenSalesDropRate).toBe(31);
+    expect(decision.bestProfitPrice).toBe(7500);
+    expect(decision.bestProfitMonthlyProfit).toBe(1877400);
+  });
+
   it("판매량 민감도가 높으면 같은 가격에서도 더 보수적인 월 이익을 보여준다", () => {
     const product = calculateProductCost(latte);
     const low = buildPriceDecision(product, { selectedPrice: 6700, monthlyCups: 600, sensitivity: "low" });

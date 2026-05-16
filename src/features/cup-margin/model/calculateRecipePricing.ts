@@ -78,10 +78,21 @@ export type PriceSimulationPoint = {
 
 export type SalesSensitivity = "low" | "medium" | "high";
 
+export type ChannelMixOptions = {
+  storeRate: number;
+  takeawayRate: number;
+  deliveryRate: number;
+  cardFeeRate: number;
+  deliveryFeeRate: number;
+  deliveryExtraPackagingCost: number;
+};
+
 export type PriceDecisionOptions = {
   selectedPrice: number;
   monthlyCups: number;
   sensitivity: SalesSensitivity;
+  channelMix?: ChannelMixOptions;
+  simulationRange?: PriceSimulationOptions;
 };
 
 export type PriceDecisionSummary = {
@@ -95,6 +106,12 @@ export type PriceDecisionSummary = {
   selectedProfitPerCup: number;
   expectedSalesIndex: number;
   breakEvenSalesDropRate: number | null;
+  breakEvenMonthlyCups: number | null;
+  channelCostPerCup: number;
+  selectedNetProfitPerCup: number;
+  bestProfitPrice: number;
+  bestProfitMonthlyProfit: number;
+  bestProfitMonthlyCups: number;
   sensitivity: SalesSensitivity;
   sensitivityLabel: string;
   summary: string;
@@ -382,17 +399,28 @@ export function estimateSalesIndex(basePrice: number, nextPrice: number, sensiti
 export function buildPriceDecision(product: ProductCostingResult, options: PriceDecisionOptions): PriceDecisionSummary {
   const selectedPrice = safeNumber(options.selectedPrice);
   const currentMonthlyCups = Math.max(0, Math.round(safeNumber(options.monthlyCups)));
+  const channelCostPerCup = estimateChannelCostPerCup(selectedPrice, options.channelMix);
+  const currentChannelCostPerCup = estimateChannelCostPerCup(product.salePrice, options.channelMix);
   const selectedProfitPerCup = roundWon(selectedPrice - product.totalCost);
+  const selectedNetProfitPerCup = roundWon(selectedPrice - product.totalCost - channelCostPerCup);
+  const currentNetProfitPerCup = roundWon(product.salePrice - product.totalCost - currentChannelCostPerCup);
   const expectedSalesIndex = estimateSalesIndex(product.salePrice, selectedPrice, options.sensitivity);
   const projectedMonthlyCups = Math.round(currentMonthlyCups * (expectedSalesIndex / 100));
-  const currentMonthlyProfit = roundWon(product.profit * currentMonthlyCups);
-  const projectedMonthlyProfit = roundWon(selectedProfitPerCup * projectedMonthlyCups);
+  const currentMonthlyProfit = roundWon(currentNetProfitPerCup * currentMonthlyCups);
+  const projectedMonthlyProfit = roundWon(selectedNetProfitPerCup * projectedMonthlyCups);
   const monthlyProfitDelta = roundWon(projectedMonthlyProfit - currentMonthlyProfit);
-  const possibleMonthlyProfitBeforeDrop = selectedProfitPerCup * currentMonthlyCups;
+  const breakEvenMonthlyCups = selectedNetProfitPerCup > 0 ? Math.ceil(currentMonthlyProfit / selectedNetProfitPerCup) : null;
+  const possibleMonthlyProfitBeforeDrop = selectedNetProfitPerCup * currentMonthlyCups;
   const breakEvenSalesDropRate =
-    selectedProfitPerCup > 0 && possibleMonthlyProfitBeforeDrop > 0
+    selectedNetProfitPerCup > 0 && possibleMonthlyProfitBeforeDrop > 0
       ? roundRate(Math.max(0, 100 - (currentMonthlyProfit / possibleMonthlyProfitBeforeDrop) * 100))
       : null;
+  const bestProfit = findBestProfitPoint(product, {
+    monthlyCups: currentMonthlyCups,
+    sensitivity: options.sensitivity,
+    channelMix: options.channelMix,
+    simulationRange: options.simulationRange,
+  });
   const sensitivityLabel: Record<SalesSensitivity, string> = {
     low: "민감도 낮음",
     medium: "민감도 보통",
@@ -411,6 +439,12 @@ export function buildPriceDecision(product: ProductCostingResult, options: Price
     selectedProfitPerCup,
     expectedSalesIndex,
     breakEvenSalesDropRate,
+    breakEvenMonthlyCups,
+    channelCostPerCup,
+    selectedNetProfitPerCup,
+    bestProfitPrice: bestProfit.price,
+    bestProfitMonthlyProfit: bestProfit.monthlyProfit,
+    bestProfitMonthlyCups: bestProfit.monthlyCups,
     sensitivity: options.sensitivity,
     sensitivityLabel: sensitivityLabel[options.sensitivity],
     summary: `월 ${Math.abs(monthlyProfitDelta).toLocaleString("ko-KR")}원 ${deltaLabel} 예상`,
@@ -436,6 +470,48 @@ export function summarizeTradeArea(input: TradeAreaInput): TradeAreaSummary {
     warning,
     headline: `${input.address} ${input.radiusMeters}m 기준 카페 ${input.cafeCount}곳 · 베이커리 ${input.bakeryCount}곳`,
   };
+}
+
+function findBestProfitPoint(
+  product: ProductCostingResult,
+  options: {
+    monthlyCups: number;
+    sensitivity: SalesSensitivity;
+    channelMix?: ChannelMixOptions;
+    simulationRange?: PriceSimulationOptions;
+  },
+) {
+  const range = options.simulationRange ?? {
+    minPrice: roundDownToHundred(Math.max(100, product.salePrice * 0.85)),
+    maxPrice: roundUpToHundred(Math.max(product.salePrice, product.recommendedPrice) * 1.15),
+    step: 500,
+  };
+  const points = generatePriceSimulation(product, range);
+  const candidates = points.length > 0 ? points.map((point) => point.price) : [product.salePrice];
+
+  return candidates.reduce(
+    (best, price) => {
+      const monthlyCups = Math.round(options.monthlyCups * (estimateSalesIndex(product.salePrice, price, options.sensitivity) / 100));
+      const channelCost = estimateChannelCostPerCup(price, options.channelMix);
+      const monthlyProfit = roundWon((price - product.totalCost - channelCost) * monthlyCups);
+      return monthlyProfit > best.monthlyProfit ? { price, monthlyProfit, monthlyCups } : best;
+    },
+    { price: product.salePrice, monthlyProfit: Number.NEGATIVE_INFINITY, monthlyCups: options.monthlyCups },
+  );
+}
+
+export function estimateChannelCostPerCup(price: number, channelMix?: ChannelMixOptions) {
+  if (!channelMix) return 0;
+  const salePrice = safeNumber(price);
+  const storeRate = clampPercent(safeNumber(channelMix.storeRate));
+  const takeawayRate = clampPercent(safeNumber(channelMix.takeawayRate));
+  const deliveryRate = clampPercent(safeNumber(channelMix.deliveryRate));
+  const totalRate = Math.max(1, storeRate + takeawayRate + deliveryRate);
+  const normalizedDeliveryRate = deliveryRate / totalRate;
+  const cardFee = salePrice * (clampPercent(safeNumber(channelMix.cardFeeRate)) / 100);
+  const deliveryFee = salePrice * normalizedDeliveryRate * (clampPercent(safeNumber(channelMix.deliveryFeeRate)) / 100);
+  const extraPackaging = normalizedDeliveryRate * safeNumber(channelMix.deliveryExtraPackagingCost);
+  return roundWon(cardFee + deliveryFee + extraPackaging);
 }
 
 function calculateIngredientLine(ingredient: RecipeIngredientInput): IngredientCostLine {

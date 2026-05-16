@@ -24,6 +24,7 @@ import {
   estimateSalesIndex,
   generatePriceSimulation,
   summarizeTradeArea,
+  type ChannelMixOptions,
   type PriceDecisionSummary,
   type ProductCostingResult,
   type PriceSimulationPoint,
@@ -70,6 +71,15 @@ type MobileCalculatorView = "result" | "adjust" | "details";
 
 const calculatorStorageKey = "cup-margin:calculator:v1";
 
+const DEFAULT_CHANNEL_MIX: ChannelMixOptions = {
+  storeRate: 60,
+  takeawayRate: 25,
+  deliveryRate: 15,
+  cardFeeRate: 2,
+  deliveryFeeRate: 15,
+  deliveryExtraPackagingCost: 250,
+};
+
 const problemCards = [
   {
     title: "메뉴마다 남는 돈이 달라요",
@@ -114,6 +124,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
   const recipeProduct = useMemo(() => calculateProductCost(recipeProductInput), [recipeProductInput]);
   const [selectedRecipePrice, setSelectedRecipePrice] = useState(recipeProductInput.salePrice);
   const [salesSensitivity, setSalesSensitivity] = useState<SalesSensitivity>("medium");
+  const [includeChannelCosts, setIncludeChannelCosts] = useState(true);
   const [mobileCalculatorView, setMobileCalculatorView] = useState<MobileCalculatorView>("result");
   const [saveMessage, setSaveMessage] = useState("계산을 저장하면 이 기기와 공유 링크에서 다시 열 수 있어요.");
   const simulatedRecipeProduct = useMemo(
@@ -127,8 +138,15 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
   );
   const tradeArea = useMemo(() => summarizeTradeArea(DEFAULT_TRADE_AREA), []);
   const priceDecision = useMemo(
-    () => buildPriceDecision(recipeProduct, { selectedPrice: selectedRecipePrice, monthlyCups: 600, sensitivity: salesSensitivity }),
-    [recipeProduct, selectedRecipePrice, salesSensitivity],
+    () =>
+      buildPriceDecision(recipeProduct, {
+        selectedPrice: selectedRecipePrice,
+        monthlyCups: 600,
+        sensitivity: salesSensitivity,
+        channelMix: includeChannelCosts ? DEFAULT_CHANNEL_MIX : undefined,
+        simulationRange: { ...simulationRange, step: 500 },
+      }),
+    [includeChannelCosts, recipeProduct, selectedRecipePrice, salesSensitivity, simulationRange],
   );
   const result = useMemo(() => calculateMultiMenuMargin(input), [input]);
   const selectedMenu = result.menus.find((menu) => menu.id === selectedMenuId) ?? result.menus[0];
@@ -342,6 +360,8 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
           priceDecision={priceDecision}
           salesSensitivity={salesSensitivity}
           onChangeSalesSensitivity={setSalesSensitivity}
+          includeChannelCosts={includeChannelCosts}
+          onToggleChannelCosts={setIncludeChannelCosts}
           selectedProductId={recipeProductId}
           onSelectProduct={(productId) => {
             const nextProduct = DEFAULT_RECIPE_PRICING_PRODUCTS.find((product) => product.id === productId) ?? DEFAULT_RECIPE_PRICING_PRODUCTS[0];
@@ -659,6 +679,8 @@ function RecipePricingSection({
   priceDecision,
   salesSensitivity,
   onChangeSalesSensitivity,
+  includeChannelCosts,
+  onToggleChannelCosts,
   selectedProductId,
   onSelectProduct,
   onChangePrice,
@@ -677,6 +699,8 @@ function RecipePricingSection({
   priceDecision: PriceDecisionSummary;
   salesSensitivity: SalesSensitivity;
   onChangeSalesSensitivity: (sensitivity: SalesSensitivity) => void;
+  includeChannelCosts: boolean;
+  onToggleChannelCosts: (enabled: boolean) => void;
   selectedProductId: string;
   onSelectProduct: (productId: string) => void;
   onChangePrice: (price: number) => void;
@@ -781,6 +805,8 @@ function RecipePricingSection({
                 priceDecision={priceDecision}
                 salesSensitivity={salesSensitivity}
                 onChangeSalesSensitivity={onChangeSalesSensitivity}
+                includeChannelCosts={includeChannelCosts}
+                onToggleChannelCosts={onToggleChannelCosts}
                 onChangePrice={onChangePrice}
                 compact={compact}
                 onShowResult={() => onChangeMobileView?.("result")}
@@ -820,6 +846,8 @@ function RecipePricingSection({
                   </p>
                 </div>
                 <TradeAreaCard tradeArea={tradeArea} />
+                <ChannelCostCard includeChannelCosts={includeChannelCosts} decision={priceDecision} />
+                <IngredientImpactCard product={product} />
                 <RecipeDetailCard product={product} />
               </div>
             </details>
@@ -922,6 +950,9 @@ function PriceDecisionCard({ decision }: { decision: PriceDecisionSummary }) {
         <SimpleMetric label="현재 월 이익" value={formatWon(decision.currentMonthlyProfit)} />
         <SimpleMetric label="변경 후 월 이익" value={formatWon(decision.projectedMonthlyProfit)} />
         <SimpleMetric label="줄어도 버틸 판매량" value={decision.breakEvenSalesDropRate === null ? "계산 불가" : `${formatPercent(decision.breakEvenSalesDropRate)} 감소까지`} />
+        <SimpleMetric label="최대 이익점" value={formatWon(decision.bestProfitPrice)} />
+        <SimpleMetric label="손익분기 판매량" value={decision.breakEvenMonthlyCups === null ? "계산 불가" : `${formatNumber(decision.breakEvenMonthlyCups)}잔`} />
+        <SimpleMetric label="채널 비용 반영 후 잔당" value={formatWon(decision.selectedNetProfitPerCup)} />
       </div>
       <p className="mt-3 text-xs font-semibold leading-5 text-[#64748d]">
         선택 가격 {formatWon(decision.selectedPrice)} · 월 {formatNumber(decision.currentMonthlyCups)}잔 기준 · {decision.sensitivityLabel} 가정입니다.
@@ -1038,6 +1069,8 @@ function PriceControlCard({
   priceDecision,
   salesSensitivity,
   onChangeSalesSensitivity,
+  includeChannelCosts,
+  onToggleChannelCosts,
   onChangePrice,
   compact = false,
   onShowResult,
@@ -1050,6 +1083,8 @@ function PriceControlCard({
   priceDecision: PriceDecisionSummary;
   salesSensitivity: SalesSensitivity;
   onChangeSalesSensitivity: (sensitivity: SalesSensitivity) => void;
+  includeChannelCosts: boolean;
+  onToggleChannelCosts: (enabled: boolean) => void;
   onChangePrice: (price: number) => void;
   compact?: boolean;
   onShowResult?: () => void;
@@ -1085,12 +1120,13 @@ function PriceControlCard({
       </div>
 
       <SensitivityControl selected={salesSensitivity} onChange={onChangeSalesSensitivity} />
+      <ChannelCostToggle enabled={includeChannelCosts} onChange={onToggleChannelCosts} decision={priceDecision} />
 
       <div className="mt-3 rounded-2xl bg-white p-3 text-xs font-bold leading-5 text-[#64748d]">
         <span className="text-[#0b2545]">{priceDecision.sensitivityLabel}</span> 기준, 선택 가격은 월 {formatWon(priceDecision.projectedMonthlyProfit)} 예상입니다.
       </div>
 
-      <PriceSimulationChart points={simulationPoints} selectedPoint={selectedPoint} targetMarginRate={targetMarginRate} />
+      <PriceSimulationChart points={simulationPoints} selectedPoint={selectedPoint} targetMarginRate={targetMarginRate} decision={priceDecision} />
 
       {compact ? (
         <button
@@ -1132,14 +1168,44 @@ function SensitivityControl({ selected, onChange }: { selected: SalesSensitivity
   );
 }
 
+function ChannelCostToggle({ enabled, onChange, decision }: { enabled: boolean; onChange: (enabled: boolean) => void; decision: PriceDecisionSummary }) {
+  return (
+    <div className="mt-3 rounded-2xl bg-white p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-black text-[#64748d]">매장·포장·배달 비용도 같이 볼까요?</p>
+          <p className="mt-1 text-[11px] font-bold leading-5 text-[#64748d]">
+            카드 2%, 배달 15%, 배달 포장비 250원을 샘플로 반영합니다.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onChange(!enabled)}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-black ${enabled ? "bg-[#0b2545] text-white" : "bg-[#eef2f7] text-[#64748d]"}`}
+          aria-pressed={enabled}
+        >
+          {enabled ? "반영 중" : "제외"}
+        </button>
+      </div>
+      {enabled ? (
+        <p className="mt-2 rounded-xl bg-[#f8fbff] px-3 py-2 text-xs font-bold text-[#0b2545]">
+          선택가 기준 잔당 채널 비용 약 {formatWon(decision.channelCostPerCup)} 반영
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function PriceSimulationChart({
   points,
   selectedPoint,
   targetMarginRate,
+  decision,
 }: {
   points: PriceSimulationPoint[];
   selectedPoint: PriceSimulationPoint;
   targetMarginRate: number;
+  decision: PriceDecisionSummary;
 }) {
   const chartWidth = 320;
   const chartHeight = 122;
@@ -1158,6 +1224,9 @@ function PriceSimulationChart({
   const marginCoords = points.map((point) => ({ x: xFor(point.price), y: marginYFor(point.marginRate) }));
   const salesCoords = points.map((point) => ({ x: xFor(point.price), y: salesYFor(point.expectedSalesIndex) }));
   const selectedX = xFor(selectedPoint.price);
+  const currentX = xFor(points[0]?.price ?? selectedPoint.price);
+  const recommendedX = xFor(decision.recommendedReviewPrice);
+  const bestX = xFor(decision.bestProfitPrice);
   const selectedMarginY = marginYFor(selectedPoint.marginRate);
   const selectedSalesY = salesYFor(selectedPoint.expectedSalesIndex);
   const targetY = marginYFor(targetMarginRate);
@@ -1187,11 +1256,16 @@ function PriceSimulationChart({
         <line x1={padding} x2={chartWidth - padding} y1={targetY} y2={targetY} stroke="#cbd5e1" strokeDasharray="4 4" strokeWidth="1.5" />
         <path d={pathFrom(marginCoords)} fill="none" stroke="#0b2545" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3.5" />
         <path d={pathFrom(salesCoords)} fill="none" stroke="#f59e0b" strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" />
+        <line x1={currentX} x2={currentX} y1={padding - 4} y2={chartHeight - padding + 4} stroke="#94a3b8" strokeDasharray="3 4" strokeWidth="1.2" />
+        <line x1={recommendedX} x2={recommendedX} y1={padding - 4} y2={chartHeight - padding + 4} stroke="#10b981" strokeDasharray="5 3" strokeWidth="1.4" />
+        <line x1={bestX} x2={bestX} y1={padding - 4} y2={chartHeight - padding + 4} stroke="#7c3aed" strokeDasharray="2 3" strokeWidth="1.4" />
         <line x1={selectedX} x2={selectedX} y1={padding - 4} y2={chartHeight - padding + 4} stroke="#0071e3" strokeWidth="1.5" />
         <circle cx={selectedX} cy={selectedMarginY} r="5" fill="#0b2545" stroke="white" strokeWidth="2" />
         <circle cx={selectedX} cy={selectedSalesY} r="5" fill="#f59e0b" stroke="white" strokeWidth="2" />
         <text x={padding} y={padding - 7} fill="#0b2545" fontSize="10" fontWeight="800">마진율 ↑</text>
         <text x={chartWidth - padding - 66} y={padding - 7} fill="#92400e" fontSize="10" fontWeight="800">판매량 ↓</text>
+        <text x={Math.min(chartWidth - 58, Math.max(padding, recommendedX - 18))} y={chartHeight - 18} fill="#047857" fontSize="9" fontWeight="800">추천</text>
+        <text x={Math.min(chartWidth - 58, Math.max(padding, bestX - 24))} y={chartHeight - 30} fill="#6d28d9" fontSize="9" fontWeight="800">최대 이익</text>
         <text x={padding} y={chartHeight - 4} fill="#64748d" fontSize="10" fontWeight="700">{formatWon(minPrice)}</text>
         <text x={chartWidth - padding - 44} y={chartHeight - 4} fill="#64748d" fontSize="10" fontWeight="700">{formatWon(maxPrice)}</text>
       </svg>
@@ -1210,6 +1284,8 @@ function PriceSimulationChart({
         <GraphMetric label="목표 마진" value={formatPercent(targetMarginRate)} />
         <GraphMetric label="목표 마진 차이" value={`${marginDelta >= 0 ? "+" : ""}${formatPercent(marginDelta)}`} strong={marginDelta >= 0} />
         <GraphMetric label="판매량 변화" value={`${salesDelta >= 0 ? "+" : ""}${formatNumber(salesDelta)}%p`} />
+        <GraphMetric label="최대 이익점" value={formatWon(decision.bestProfitPrice)} strong />
+        <GraphMetric label="손익분기 판매량" value={decision.breakEvenMonthlyCups === null ? "계산 불가" : `${formatNumber(decision.breakEvenMonthlyCups)}잔`} />
       </div>
       <p className="mt-3 text-xs font-semibold leading-5 text-[#64748d]">
         예상 판매량은 현재 판매가를 100으로 둔 참고 지수입니다. 실제 판매량은 상권, 시즌, 고객 반응에 따라 달라집니다.
@@ -1223,6 +1299,48 @@ function GraphMetric({ label, value, strong = false }: { label: string; value: s
     <div className={`${strong ? "bg-[#eef5fb]" : "bg-[#f8fbff]"} rounded-2xl px-3 py-2`}>
       <p className="text-[11px] font-bold text-[#64748d]">{label}</p>
       <p className="mt-0.5 whitespace-nowrap text-sm font-black tracking-[-0.02em] text-[#061b31]">{value}</p>
+    </div>
+  );
+}
+
+function ChannelCostCard({ includeChannelCosts, decision }: { includeChannelCosts: boolean; decision: PriceDecisionSummary }) {
+  return (
+    <div className="rounded-[28px] border border-[#e5edf5] bg-white p-4 shadow-[rgba(23,23,23,0.06)_0px_18px_44px_-28px] sm:p-6">
+      <p className="text-sm font-bold text-[#0b2545]">채널 비용 샘플</p>
+      <h3 className="mt-2 text-[22px] font-light leading-tight tracking-[-0.03em] text-[#061b31] sm:text-2xl">
+        {includeChannelCosts ? `잔당 ${formatWon(decision.channelCostPerCup)}을 추가 비용으로 봅니다` : "채널 비용은 현재 제외했습니다"}
+      </h3>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <Metric label="매장" value="60%" />
+        <Metric label="포장" value="25%" />
+        <Metric label="배달" value="15%" />
+        <Metric label="배달 추가 포장" value="250원" />
+      </div>
+      <p className="mt-4 rounded-xl bg-[#f8fbff] px-4 py-3 text-sm font-semibold leading-6 text-[#64748d]">
+        포장비, 카드 수수료, 배달앱 수수료, 쿠폰 부담액은 매장마다 달라서 샘플 가정으로 표시합니다. 실제 입력 기능은 다음 저장형 버전에서 확장하면 됩니다.
+      </p>
+    </div>
+  );
+}
+
+function IngredientImpactCard({ product }: { product: ProductCostingResult }) {
+  const topLines = [...product.ingredientLines].sort((a, b) => b.cost - a.cost).slice(0, 3);
+
+  return (
+    <div className="rounded-[28px] border border-[#e5edf5] bg-white p-4 shadow-[rgba(23,23,23,0.06)_0px_18px_44px_-28px] sm:p-6">
+      <p className="text-sm font-bold text-[#0b2545]">재료 가격 영향</p>
+      <h3 className="mt-2 text-[22px] font-light leading-tight tracking-[-0.03em] text-[#061b31] sm:text-2xl">먼저 확인할 재료 {topLines[0]?.name ?? "원재료"}</h3>
+      <div className="mt-4 space-y-2">
+        {topLines.map((line) => (
+          <div key={line.name} className="flex items-center justify-between gap-3 rounded-2xl bg-[#f8fbff] px-4 py-3 text-sm font-semibold">
+            <span className="text-[#061b31]">{line.name}</span>
+            <span className="shrink-0 text-[#0b2545]">잔당 {formatWon(line.cost)}</span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold leading-6 text-amber-900">
+        이 재료 단가가 오르면 같은 재료를 쓰는 메뉴부터 다시 계산하세요.
+      </p>
     </div>
   );
 }
