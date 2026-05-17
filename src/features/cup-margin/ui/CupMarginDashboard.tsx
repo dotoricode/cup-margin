@@ -214,52 +214,71 @@ function MenuSliderCard({
 }
 
 function ProfitCurve({ menus }: { menus: ReturnType<typeof calculateMultiMenuMargin>["menus"] }) {
-  const width = 720;
-  const height = 270;
-  const padding = 34;
-  const maxProfit = Math.max(1, ...menus.map((menu) => menu.monthlyProfit));
-  const points = menus.map((menu, index) => {
-    const x = padding + (index / Math.max(1, menus.length - 1)) * (width - padding * 2);
-    const y = height - padding - (menu.monthlyProfit / maxProfit) * (height - padding * 2);
-    return { x, y, menu };
+  const sortedMenus = [...menus].sort((a, b) => b.monthlyProfit - a.monthlyProfit);
+  const maxProfit = Math.max(1, ...sortedMenus.map((menu) => Math.max(0, menu.monthlyProfit)));
+  const totalProfit = Math.max(1, sortedMenus.reduce((sum, menu) => sum + Math.max(0, menu.monthlyProfit), 0));
+  const rows = sortedMenus.map((menu, index) => {
+    const runningProfit = sortedMenus.slice(0, index + 1).reduce((sum, item) => sum + Math.max(0, item.monthlyProfit), 0);
+    return {
+      menu,
+      widthPercent: Math.max(6, Math.round((Math.max(0, menu.monthlyProfit) / maxProfit) * 100)),
+      cumulativePercent: Math.min(100, Math.round((runningProfit / totalProfit) * 100)),
+      diagnosis: getDashboardDiagnosis(menu.profitPerCup, menu.marginRate),
+    };
   });
-  const path = points.map((point, index) => `${index === 0 ? "M" : "L"} ${point.x} ${point.y}`).join(" ");
-  const fillPath = `${path} L ${points.at(-1)?.x ?? padding} ${height - padding} L ${padding} ${height - padding} Z`;
 
   return (
     <div className="cm-card rounded-[32px] p-5 sm:p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-bold text-[#0b2545]">이익 그래프</p>
-          <h2 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.045em] text-[#1d1d1f] sm:text-3xl">어떤 메뉴가 더 남는지 확인해보세요</h2>
+          <h2 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.045em] text-[#1d1d1f] sm:text-3xl">어떤 메뉴가 더 남는지 정렬해서 봅니다</h2>
         </div>
-        <p className="text-sm font-semibold text-[#64748d]">곡선이 높을수록 월 이익이 큽니다</p>
+        <p className="text-sm font-semibold text-[#64748d]">월 이익 내림차순 · 파레토 80% 보조선</p>
       </div>
-      <div className="mt-6 overflow-hidden rounded-3xl border border-[#e5edf5] bg-[#f8fafc] p-4">
-        <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full" role="img" aria-label="메뉴별 월 이익 곡선 그래프">
-          <defs>
-            <linearGradient id="profitFill" x1="0" x2="0" y1="0" y2="1">
-              <stop offset="0%" stopColor="#0071e3" stopOpacity="0.26" />
-              <stop offset="100%" stopColor="#0071e3" stopOpacity="0.02" />
-            </linearGradient>
-          </defs>
-          <path d={fillPath} fill="url(#profitFill)" />
-          <path d={path} fill="none" stroke="#0071e3" strokeLinecap="round" strokeLinejoin="round" strokeWidth="8" />
-          {points.map((point) => (
-            <g key={point.menu.id}>
-              <circle cx={point.x} cy={point.y} r="10" fill="#0b2545" />
-              <text x={point.x} y={height - 10} textAnchor="middle" className="fill-[#64748d] text-[18px] font-bold">
-                {point.menu.menuName}
-              </text>
-              <text x={point.x} y={Math.max(24, point.y - 18)} textAnchor="middle" className="fill-[#061b31] text-[20px] font-black">
-                {formatWon(point.menu.monthlyProfit)}
-              </text>
-            </g>
-          ))}
-        </svg>
+      <div className="mt-6 rounded-3xl border border-[#e5edf5] bg-[#f8fafc] p-4" role="img" aria-label="메뉴별 월 이익 정렬 가로막대와 파레토 누적 비중">
+        <div className="mb-4 flex items-center justify-between gap-3 text-xs font-black text-[#64748d]">
+          <span>정렬 가로막대</span>
+          <span>파레토 80%</span>
+        </div>
+        <div className="space-y-3">
+          {rows.map(({ menu, widthPercent, cumulativePercent, diagnosis }) => {
+            return (
+              <div key={menu.id} className="rounded-2xl bg-white p-3 ring-1 ring-[#e5edf5]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-[#1B2230]">{menu.menuName}</p>
+                    <p className="mt-1 text-xs font-bold text-[#64748d]">누적 {cumulativePercent}% · 잔당 {formatWon(menu.profitPerCup)}</p>
+                  </div>
+                  <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${diagnosis.className}`}>{diagnosis.label}</span>
+                </div>
+                <div className="mt-3 grid grid-cols-[1fr_auto] items-center gap-3">
+                  <div className="relative h-8 overflow-hidden rounded-full bg-[#efe7d9]">
+                    <div className={`h-full rounded-full ${diagnosis.barClassName}`} style={{ width: `${widthPercent}%` }} />
+                    <div className="absolute bottom-0 top-0 w-px bg-[#1B2230]/40" style={{ left: "80%" }} aria-hidden="true" />
+                  </div>
+                  <p className="min-w-[86px] text-right text-sm font-black text-[#1B2230] tabular-nums">{formatWon(menu.monthlyProfit)}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
+}
+
+function getDashboardDiagnosis(profitPerCup: number, marginRate: number) {
+  if (profitPerCup <= 0 || marginRate < 40) {
+    return { label: "운영비 회수 안 됨", className: "bg-rose-100 text-rose-700", barClassName: "bg-[#B23A2F]" };
+  }
+  if (marginRate < 50) {
+    return { label: "마진 얕음", className: "bg-orange-100 text-orange-800", barClassName: "bg-[#C7882C]" };
+  }
+  if (marginRate < 60) {
+    return { label: "원가 점검", className: "bg-amber-100 text-amber-800", barClassName: "bg-[#C7882C]" };
+  }
+  return { label: "양호", className: "bg-emerald-100 text-emerald-800", barClassName: "bg-[#2F8F6B]" };
 }
 
 function MenuComparison({ menus }: { menus: ReturnType<typeof calculateMultiMenuMargin>["menus"] }) {

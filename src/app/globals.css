@@ -2,29 +2,60 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f6f8fb;
-  --foreground: #101828;
-  --font-sans-stack: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
-  --cm-bg: #f6f8fb;
-  --cm-surface: #ffffff;
-  --cm-surface-muted: #f8fafc;
-  --cm-ink: #0f172a;
-  --cm-ink-soft: #334155;
-  --cm-muted: #64748b;
-  --cm-line: #dbe5f0;
-  --cm-line-strong: #c8d6e6;
-  --cm-primary: #0b2545;
-  --cm-primary-hover: #123a63;
-  --cm-accent: #2563eb;
-  --cm-success: #059669;
-  --cm-danger: #dc2626;
-  --cm-radius-sm: 12px;
+  --color-bg-canvas: #FBF7EF;
+  --color-surface-default: #FFFFFF;
+  --color-surface-raised: #FAF2E6;
+  --color-border-default: #ECE3D2;
+  --color-text-primary: #1B2230;
+  --color-text-secondary: #5B6473;
+  --color-brand-primary: #1F4FBF;
+  --color-brand-on-primary: #FFFFFF;
+  --color-accent-positive: #2F8F6B;
+  --color-state-warning: #C7882C;
+  --color-state-danger: #B23A2F;
+
+  --font-body: "Pretendard Variable", Pretendard, system-ui, sans-serif;
+  --font-size-body: 16px;
+  --line-height-body: 1.55;
+  --font-weight-body: 400;
+  --font-size-number-xl: 40px;
+  --font-weight-number-xl: 700;
+  --font-variant-numeric: tabular-nums;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --tap-min: 44px;
+
+  --background: var(--color-bg-canvas);
+  --foreground: var(--color-text-primary);
+  --font-sans-stack: var(--font-body), -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --cm-bg: var(--color-bg-canvas);
+  --cm-surface: var(--color-surface-default);
+  --cm-surface-muted: var(--color-surface-raised);
+  --cm-ink: var(--color-text-primary);
+  --cm-ink-soft: var(--color-text-secondary);
+  --cm-muted: var(--color-text-secondary);
+  --cm-line: var(--color-border-default);
+  --cm-line-strong: #D9CCBA;
+  --cm-primary: var(--color-brand-primary);
+  --cm-primary-hover: #173FA0;
+  --cm-accent: var(--color-brand-primary);
+  --cm-success: var(--color-accent-positive);
+  --cm-danger: var(--color-state-danger);
+  --cm-radius-sm: var(--radius-md);
   --cm-radius-md: 20px;
   --cm-radius-lg: 28px;
   --cm-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 1px rgba(15, 23, 42, 0.03);
   --cm-shadow-md: 0 18px 45px -32px rgba(15, 23, 42, 0.34), 0 6px 18px -16px rgba(15, 23, 42, 0.22);
   --cm-shadow-lg: 0 34px 80px -48px rgba(15, 23, 42, 0.42), 0 14px 32px -26px rgba(15, 23, 42, 0.26);
-  --cm-focus: 0 0 0 3px rgba(37, 99, 235, 0.18), 0 0 0 1px rgba(37, 99, 235, 0.45);
+  --cm-focus: 0 0 0 3px rgba(31, 79, 191, 0.18), 0 0 0 1px rgba(31, 79, 191, 0.45);
 }
 
 @theme inline {
@@ -106,6 +137,10 @@ label {
   transition-property: color, background-color, border-color, box-shadow, transform, opacity;
   transition-duration: 180ms;
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:where(a, button, select, summary) {
+  min-height: var(--tap-min);
 }
 
 :where(a, button, input, select, summary):focus-visible {

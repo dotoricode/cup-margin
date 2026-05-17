@@ -305,7 +305,7 @@ export const DEFAULT_RECIPE_PRICING_PRODUCTS: ProductCostingInput[] = [
 ];
 
 export const DEFAULT_TRADE_AREA: TradeAreaInput = {
-  address: "울산 중구 반구동",
+  address: "내 가게 주변 상권 정보가 들어올 자리",
   radiusMeters: 500,
   cafeCount: 18,
   bakeryCount: 5,
