@@ -97,26 +97,29 @@ const problemCards = [
 
 const heroBenefitCards = [
   {
-    title: "무슨 서비스인가요?",
-    body: "컵마진은 카페 메뉴 가격을 정하기 전에 한 잔 원가, 남는 돈, 월 비용 반영값을 한 화면에서 확인하는 손익 계산기입니다.",
-  },
-  {
+    eyebrow: "먼저",
     title: "언제 쓰나요?",
     body: "오픈 전 가격표를 만들 때, 원두·우유·포장재 가격이 올랐을 때, 신메뉴를 소량 테스트하기 전에 씁니다.",
   },
   {
+    eyebrow: "다음",
+    title: "무슨 서비스인가요?",
+    body: "컵마진은 카페 메뉴 가격을 정하기 전에 한 잔 원가, 남는 돈, 월 비용 반영값을 한 화면에서 확인하는 손익 계산기입니다.",
+  },
+  {
+    eyebrow: "결과",
     title: "쓰면 뭐가 좋나요?",
     body: "감으로 가격을 정하기 전에 손해 가능성을 먼저 보고, 사장님이 실제 가격 판단에 쓸 수 있는 기준만 남깁니다.",
   },
 ];
 
 export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = {}) {
-  const [input, setInput] = useState<MultiMenuMarginInput>(() => cloneInput(DEFAULT_MULTI_MENU_INPUT));
+  const [input, setInput] = useState<MultiMenuMarginInput>(() => cloneInput(testPage ? emptyInput : DEFAULT_MULTI_MENU_INPUT));
   const [navOpen, setNavOpen] = useState(false);
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
   const [selectedMenuId, setSelectedMenuId] = useState(DEFAULT_MULTI_MENU_INPUT.menus[1]?.id ?? DEFAULT_MULTI_MENU_INPUT.menus[0].id);
-  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
+  const [isCalculatorOpen, setIsCalculatorOpen] = useState(testPage);
   const [priceDelta, setPriceDelta] = useState(500);
   const [volumeChangeRate, setVolumeChangeRate] = useState(-5);
   const [recipeProductId, setRecipeProductId] = useState(DEFAULT_RECIPE_PRICING_PRODUCTS[0].id);
@@ -127,6 +130,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
   const [includeChannelCosts, setIncludeChannelCosts] = useState(true);
   const [mobileCalculatorView, setMobileCalculatorView] = useState<MobileCalculatorView>("result");
   const [saveMessage, setSaveMessage] = useState("계산을 저장하면 이 기기와 공유 링크에서 다시 열 수 있어요.");
+  const [showFirstVisitHint, setShowFirstVisitHint] = useState(testPage);
   const simulatedRecipeProduct = useMemo(
     () => calculateProductCost({ ...recipeProductInput, salePrice: selectedRecipePrice }),
     [recipeProductInput, selectedRecipePrice],
@@ -148,9 +152,17 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
       }),
     [includeChannelCosts, recipeProduct, selectedRecipePrice, salesSensitivity, simulationRange],
   );
+  // Legacy recipe-pricing demo is intentionally not rendered on /calculator, but kept for future landing experiments.
+  void setSalesSensitivity;
+  void setIncludeChannelCosts;
+  void simulatedRecipeProduct;
+  void simulationPoints;
+  void tradeArea;
+  void priceDecision;
   const result = useMemo(() => calculateMultiMenuMargin(input), [input]);
+  const hasCalculatorInput = input.monthlyFixedCost > 0 || input.menus.some(hasMeaningfulMenuInput);
   const selectedMenu = result.menus.find((menu) => menu.id === selectedMenuId) ?? result.menus[0];
-  const priceRisk = selectedMenu
+  const priceRisk = selectedMenu && hasCalculatorInput
     ? calculatePriceChangeRisk(selectedMenu, { priceDelta, volumeChangeRate })
     : null;
   const verdict = getPortfolioVerdict(result);
@@ -178,6 +190,29 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
       applySavedState(storedState.productId, storedState.selectedPrice, "이 기기에 저장된 마지막 계산을 불러왔어요.");
     }
   }, []);
+
+  useEffect(() => {
+    if (!testPage) return;
+    const onboardingKey = "cup-margin:calculator:onboarding-seen:v1";
+    const hasSeenOnboarding = window.localStorage.getItem(onboardingKey);
+
+    if (!hasSeenOnboarding) {
+      window.setTimeout(() => {
+        setInput(cloneInput(emptyInput));
+        setIsCalculatorOpen(true);
+        setShowFirstVisitHint(true);
+        document.getElementById("monthly-fixed-cost")?.focus();
+      }, 0);
+      window.localStorage.setItem(onboardingKey, "true");
+    }
+  }, [testPage]);
+
+  function startOwnInput() {
+    setInput(cloneInput(emptyInput));
+    setIsCalculatorOpen(true);
+    setShowFirstVisitHint(true);
+    window.setTimeout(() => document.getElementById("monthly-fixed-cost")?.focus(), 80);
+  }
 
   async function saveCalculatorState() {
     const sharePath = buildCalculatorSharePath({ productId: recipeProductId, selectedPrice: selectedRecipePrice });
@@ -232,11 +267,11 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
   }
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[#f5f5f7] text-[#061b31]">
-      <section className="relative bg-white">
+    <main className="cm-shell min-h-screen overflow-x-hidden text-[#061b31]">
+      <section className="relative cm-gradient-hero">
         <div className={`${testPage ? "hidden" : ""} absolute inset-x-0 top-0 h-[660px] bg-[radial-gradient(circle_at_18%_8%,rgba(11,37,69,0.16),transparent_28%),radial-gradient(circle_at_82%_8%,rgba(18,58,99,0.18),transparent_26%),linear-gradient(180deg,#ffffff_0%,#f6f9fc_100%)]`} />
         <div className="relative mx-auto w-full max-w-7xl px-4 py-5 sm:px-8 lg:px-10">
-          <nav className="rounded-2xl border border-[#e5edf5] bg-white/92 px-3 py-3 shadow-[rgba(50,50,93,0.12)_0px_16px_40px_-24px,rgba(0,0,0,0.08)_0px_8px_24px_-18px] backdrop-blur sm:px-4">
+          <nav className="cm-nav rounded-2xl px-3 py-3 sm:px-4">
             <div className="flex items-center justify-between gap-3">
             <Link href={testPage ? "/" : "#top"} className="flex min-w-0 items-center gap-3" aria-label="컵마진 홈">
               <BrandMark />
@@ -248,10 +283,9 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
             <div className="hidden items-center gap-6 text-sm font-semibold text-[#273951] md:flex">
               {testPage ? (
                 <>
-                  <Link href="/" className="hover:text-[#0b2545]">랜딩으로</Link>
-                  <button type="button" onClick={() => setMobileCalculatorView("result")} className="hover:text-[#0b2545]">남는 돈 보기</button>
-                  <button type="button" onClick={() => setMobileCalculatorView("adjust")} className="hover:text-[#0b2545]">가격 바꾸기</button>
-                  <button type="button" onClick={() => setMobileCalculatorView("details")} className="hover:text-[#0b2545]">계산 근거</button>
+                  <Link href="/calculator" className="hover:text-[#0b2545]">계산기</Link>
+                  <Link href="/#pricing" className="hover:text-[#0b2545]">요금</Link>
+                  <Link href="/#waitlist" className="hover:text-[#0b2545]">알림 받기</Link>
                 </>
               ) : (
                 <>
@@ -262,20 +296,15 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                 </>
               )}
             </div>
-            <a href={testPage ? "/" : "#waitlist"} className="hidden shrink-0 rounded-lg bg-[#0b2545] px-3 py-2.5 text-sm font-bold text-white shadow-[rgba(11,37,69,0.35)_0px_14px_28px_-14px] transition hover:bg-[#123a63] sm:inline-flex sm:px-4">
-              {testPage ? (
-                <>
-                  <span className="sm:hidden">랜딩</span>
-                  <span className="hidden sm:inline">랜딩으로 돌아가기</span>
-                </>
-              ) : (
-                "알림 받기"
-              )}
-            </a>
+            {!testPage ? (
+              <a href="#waitlist" className="hidden shrink-0 cm-button-primary rounded-lg px-3 py-2.5 text-sm font-bold sm:inline-flex sm:px-4">
+                알림 받기
+              </a>
+            ) : null}
             <button
               type="button"
               onClick={() => setNavOpen((current) => !current)}
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#d8e2ee] bg-white px-3 py-2 text-sm font-black text-[#0b2545] shadow-sm md:hidden"
+              className="cm-button-secondary inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-black md:hidden"
               aria-expanded={navOpen}
               aria-controls="mobile-navigation"
             >
@@ -286,17 +315,16 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
               <div id="mobile-navigation" className="soft-slide-in mt-3 grid origin-top gap-2 rounded-2xl bg-[#f5f8fb] p-2 text-sm font-bold text-[#273951] shadow-inner transition-all duration-300 ease-out md:hidden">
                 {testPage ? (
                   <>
-                    <Link href="/" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>랜딩으로</Link>
-                    <button type="button" className="rounded-xl bg-white px-4 py-3 text-left shadow-sm" onClick={() => { setMobileCalculatorView("result"); setNavOpen(false); }}>남는 돈 보기</button>
-                    <button type="button" className="rounded-xl bg-white px-4 py-3 text-left shadow-sm" onClick={() => { setMobileCalculatorView("adjust"); setNavOpen(false); }}>가격 바꾸기</button>
-                    <button type="button" className="rounded-xl bg-white px-4 py-3 text-left shadow-sm" onClick={() => { setMobileCalculatorView("details"); setNavOpen(false); }}>계산 근거</button>
+                    <Link href="/calculator" className="cm-menu-item rounded-xl px-4 py-3" onClick={() => setNavOpen(false)}>계산기</Link>
+                    <Link href="/#pricing" className="cm-menu-item rounded-xl px-4 py-3" onClick={() => setNavOpen(false)}>요금</Link>
+                    <Link href="/#waitlist" className="cm-menu-item rounded-xl px-4 py-3" onClick={() => setNavOpen(false)}>알림 받기</Link>
                   </>
                 ) : (
                   <>
-                    <a href="#top" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>서비스 소개</a>
-                    <Link href="/calculator" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>바로 계산하기</Link>
-                    <a href="#pricing" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>요금 안내</a>
-                    <a href="#waitlist" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>출시 알림</a>
+                    <a href="#top" className="cm-menu-item rounded-xl px-4 py-3" onClick={() => setNavOpen(false)}>서비스 소개</a>
+                    <Link href="/calculator" className="cm-menu-item rounded-xl px-4 py-3" onClick={() => setNavOpen(false)}>바로 계산하기</Link>
+                    <a href="#pricing" className="cm-menu-item rounded-xl px-4 py-3" onClick={() => setNavOpen(false)}>요금 안내</a>
+                    <a href="#waitlist" className="cm-menu-item rounded-xl px-4 py-3" onClick={() => setNavOpen(false)}>출시 알림</a>
                   </>
                 )}
               </div>
@@ -318,12 +346,12 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                   <span className="block">사장님이 가격표를 쓰기 전에 손해 가능성을 줄여주는 계산 서비스입니다.</span>
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link href="/calculator" className="rounded-lg bg-[#0b2545] px-6 py-4 text-center text-base font-bold text-white shadow-[rgba(50,50,93,0.25)_0px_30px_45px_-30px,rgba(0,0,0,0.1)_0px_18px_36px_-18px] transition hover:-translate-y-0.5 hover:bg-[#123a63]">
+                  <Link href="/calculator" className="cm-button-primary rounded-lg px-6 py-4 text-center text-base font-bold">
                     바로 계산해보기
                   </Link>
                   <a
                     href="#pricing"
-                    className="rounded-lg border border-[#9fb3cc] bg-white px-6 py-4 text-center text-base font-bold text-[#0b2545] transition hover:-translate-y-0.5 hover:bg-[#f3f7fb]"
+                    className="cm-button-secondary rounded-lg px-6 py-4 text-center text-base font-bold"
                   >
                     요금 안내 보기
                   </a>
@@ -336,61 +364,13 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
         </div>
       </section>
 
-      <section id="why" className={`${testPage ? "hidden" : ""} mx-auto w-full max-w-7xl px-5 py-20 sm:px-8 lg:px-10`}>
-        <SectionEyebrow>현실적인 카페 손익 구조</SectionEyebrow>
-        <div className="mt-3 grid gap-8 lg:grid-cols-[0.9fr_1fr] lg:items-end">
-          <h2 className="max-w-4xl text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31] sm:text-5xl">
-            <span className="block">한 메뉴가 아니라,</span>
-            <span className="block">가게 전체 흐름으로 봅니다.</span>
-          </h2>
-          <p className="max-w-2xl text-lg leading-8 text-[#64748d]">
-            숫자는 단순하게, 한 가지 업무는 명확하게. 컵마진은 사장님이 가격·원가 판단에 쓰는 시간을 줄이는 데 집중합니다.
-          </p>
-        </div>
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {problemCards.map((card, index) => (
-            <article key={card.title} className="rounded-2xl border border-[#e5edf5] bg-white p-6 shadow-[rgba(50,50,93,0.18)_0px_30px_45px_-34px,rgba(0,0,0,0.08)_0px_18px_36px_-24px]">
-              <span className="text-sm font-bold text-[#0b2545]">0{index + 1}</span>
-              <h3 className="mt-5 text-2xl font-light leading-tight tracking-[-0.03em] text-[#061b31]">{card.title}</h3>
-              <p className="mt-4 text-[15px] leading-7 text-[#64748d]">{card.body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <RecipePricingSection
-          product={recipeProduct}
-          simulatedProduct={simulatedRecipeProduct}
-          selectedPrice={selectedRecipePrice}
-          simulationRange={simulationRange}
-          simulationPoints={simulationPoints}
-          tradeArea={tradeArea}
-          priceDecision={priceDecision}
-          salesSensitivity={salesSensitivity}
-          onChangeSalesSensitivity={setSalesSensitivity}
-          includeChannelCosts={includeChannelCosts}
-          onToggleChannelCosts={setIncludeChannelCosts}
-          selectedProductId={recipeProductId}
-          onSelectProduct={(productId) => {
-            const nextProduct = DEFAULT_RECIPE_PRICING_PRODUCTS.find((product) => product.id === productId) ?? DEFAULT_RECIPE_PRICING_PRODUCTS[0];
-            setRecipeProductId(productId);
-            setSelectedRecipePrice(nextProduct.salePrice);
-          }}
-          onChangePrice={setSelectedRecipePrice}
-          compact={testPage}
-          mobileView={mobileCalculatorView}
-          onChangeMobileView={setMobileCalculatorView}
-          onSaveCalculator={saveCalculatorState}
-          saveMessage={saveMessage}
-        />
-
-      <section id="calculator" className="hidden">
+      <section id="calculator" className={testPage ? "pb-8" : "hidden"}>
         {testPage ? (
           <div className="mx-auto mb-3 w-full max-w-7xl px-5 sm:px-8 lg:px-10">
             <div className="rounded-2xl border border-[#c7d3e3] bg-white px-4 py-3 shadow-[rgba(11,37,69,0.08)_0px_12px_28px_-18px]">
-              <p className="text-xs font-black text-[#0b2545]">테스트 페이지</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[#061b31]">메뉴별 손익을 한 화면에서 확인하세요</h1>
-              <p className="mt-1 text-sm leading-6 text-[#64748d]">입력은 접어두고 결과부터 보여줍니다. 필요할 때만 펼쳐서 수정하세요.</p>
+              <p className="text-xs font-black text-[#0b2545]">내 카페 계산 시작</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[#061b31]">월 운영비부터 넣으면 메뉴별 손익이 바로 바뀝니다</h1>
+              <p className="mt-1 text-sm leading-6 text-[#64748d]">샘플은 참고용입니다. 내 카페 값은 월 운영비부터 입력하면 바로 결과가 바뀝니다.</p>
             </div>
           </div>
         ) : null}
@@ -405,26 +385,32 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => setIsCalculatorOpen((current) => !current)} className="w-fit rounded-lg bg-[#0b2545] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a63]">
-                  {isCalculatorOpen ? "입력 접기" : "입력 펼치기"}
+                <button type="button" onClick={startOwnInput} className="cm-button-primary w-fit rounded-lg px-4 py-2 text-sm font-bold">
+                  + 내 메뉴 입력 시작
                 </button>
-                <button type="button" onClick={() => setInput(cloneInput(emptyInput))} className="w-fit rounded-lg border border-[#c7d3e3] px-4 py-2 text-sm font-bold text-[#0b2545] hover:bg-[#f3f7fb]">
-                  입력값 비우기
+                <button type="button" onClick={() => { setInput(cloneInput(DEFAULT_MULTI_MENU_INPUT)); setIsCalculatorOpen(false); setShowFirstVisitHint(false); }} className="cm-button-secondary w-fit rounded-lg px-4 py-2 text-sm font-bold">
+                  샘플 데이터로 보기
                 </button>
-                <button type="button" onClick={() => setInput(cloneInput(DEFAULT_MULTI_MENU_INPUT))} className="w-fit rounded-lg bg-[#0b2545] px-4 py-2 text-sm font-bold text-white hover:bg-[#123a63]">
-                  샘플 채우기
+                <button type="button" onClick={() => { setInput(cloneInput(emptyInput)); setIsCalculatorOpen(true); }} className="w-fit rounded-lg px-3 py-2 text-sm font-bold text-[#64748d] hover:bg-[#f3f7fb]">
+                  전체 초기화
                 </button>
               </div>
             </div>
 
             {isCalculatorOpen ? (
               <div>
-                <label className="mt-5 block rounded-2xl border border-[#d8e3ee] bg-[#f8fbff] p-4 transition focus-within:border-[#0b2545] focus-within:bg-white">
+                {showFirstVisitHint ? (
+                  <div className="cm-onboarding-pulse mt-5 rounded-2xl border border-[#9fc3ff] bg-[#eef6ff] px-4 py-3 text-sm font-bold leading-6 text-[#0b2545]">
+                    월 운영비(임대료·관리비 등)를 먼저 입력해보세요. 샘플이 아니라 사장님 가게 값으로 결과가 바뀝니다.
+                  </div>
+                ) : null}
+                <label className={`${showFirstVisitHint ? "mt-3" : "mt-5"} block rounded-2xl border border-[#d8e3ee] bg-[#f8fbff] p-4 transition focus-within:border-[#0b2545] focus-within:bg-white`}>
               <span className="flex items-center justify-between gap-3 text-sm font-bold text-[#273951]">
                 월 고정 운영비
                 <span className="text-xs text-[#64748d]">원</span>
               </span>
               <input
+                id="monthly-fixed-cost"
                 value={formatInputValue(input.monthlyFixedCost)}
                 onChange={(event) => updateFixedCost(event.target.value)}
                 type="text"
@@ -433,7 +419,9 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                 className="mt-3 w-full bg-transparent text-3xl font-semibold tracking-[-0.04em] text-[#061b31] outline-none placeholder:text-[#aab7c4]"
               />
               <span className="mt-2 block text-sm leading-6 text-[#64748d]">
-                임대료, 관리비, 고정 인건비처럼 매달 나가는 비용입니다. 전체 판매량 기준으로 잔당 {formatWon(result.fixedCostPerCup)}씩 반영됩니다.
+                {result.menus.length > 0
+                  ? `임대료, 관리비, 고정 인건비처럼 매달 나가는 비용입니다. 전체 판매량 기준으로 잔당 ${formatWon(result.fixedCostPerCup)}씩 반영됩니다.`
+                  : "월 판매잔수를 입력하면 운영비가 잔당 비용으로 자동 배분됩니다."}
               </span>
             </label>
 
@@ -494,14 +482,14 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                 onClick={() => setIsCalculatorOpen(true)}
                 className="mt-5 w-full rounded-2xl border border-[#c7d3e3] bg-[#f8fbff] px-5 py-5 text-left transition hover:border-[#0b2545] hover:bg-white"
               >
-                <span className="block text-sm font-black text-[#0b2545]">입력값은 접어두었습니다</span>
-                <span className="mt-1 block text-sm leading-6 text-[#64748d]">오른쪽 결과를 먼저 보고, 필요할 때만 펼쳐서 메뉴별 판매량과 비용을 수정하세요.</span>
+                <span className="block text-sm font-black text-[#0b2545]">내 카페 값으로 바꿔볼 수 있어요</span>
+                <span className="mt-1 block text-sm leading-6 text-[#64748d]">월 운영비와 메뉴별 판매량을 입력하면 오른쪽 결과가 바로 바뀝니다.</span>
               </button>
             )}
           </div>
 
           <aside className="order-1 space-y-4 lg:sticky lg:top-4 lg:order-2 lg:self-start">
-            <ResultPanel result={result} verdict={verdict} />
+            <ResultPanel result={result} verdict={verdict} hasCalculatorInput={hasCalculatorInput} />
             <PriceRiskPanel
               menus={result.menus}
               selectedMenuId={selectedMenu?.id ?? ""}
@@ -512,12 +500,52 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
               onChangeVolumeChangeRate={setVolumeChangeRate}
               risk={priceRisk}
             />
-            <MenuBreakdownPanel menus={result.menus} onSelectMenu={setSelectedMenuId} />
+            <MenuBreakdownPanel menus={result.menus} onSelectMenu={setSelectedMenuId} hasCalculatorInput={hasCalculatorInput} />
+            <SaveCalculatorCard onSave={saveCalculatorState} message={saveMessage} variant="desktop" />
           </aside>
         </div>
       </section>
+      {testPage ? (
+        <MobileStickyResultBar
+          profit={selectedMenu?.profitPerCup ?? 0}
+          marginRate={result.blendedMarginRate}
+          currentView={mobileCalculatorView}
+          onChangeView={setMobileCalculatorView}
+        />
+      ) : null}
 
-      <section id="pricing" className={`${testPage ? "hidden" : ""} mx-auto w-full max-w-7xl px-5 py-20 sm:px-8 lg:px-10`}>
+      {!testPage ? (
+      <section id="why" className="mx-auto w-full max-w-7xl px-5 py-20 sm:px-8 lg:px-10">
+        <SectionEyebrow>현실적인 카페 손익 구조</SectionEyebrow>
+        <div className="mt-3 grid gap-8 lg:grid-cols-[0.9fr_1fr] lg:items-end">
+          <h2 className="max-w-4xl text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31] sm:text-5xl">
+            <span className="block">한 메뉴가 아니라,</span>
+            <span className="block">가게 전체 흐름으로 봅니다.</span>
+          </h2>
+          <p className="max-w-2xl text-lg leading-8 text-[#64748d]">
+            숫자는 단순하게, 한 가지 업무는 명확하게. 컵마진은 사장님이 가격·원가 판단에 쓰는 시간을 줄이는 데 집중합니다.
+          </p>
+        </div>
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {problemCards.map((card, index) => (
+            <article key={card.title} className="cm-card rounded-2xl p-6">
+              <span className="text-sm font-bold text-[#0b2545]">0{index + 1}</span>
+              <h3 className="mt-5 text-2xl font-light leading-tight tracking-[-0.03em] text-[#061b31]">{card.title}</h3>
+              <p className="mt-4 text-[15px] leading-7 text-[#64748d]">{card.body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+      ) : null}
+
+      {testPage ? null : (
+        <LandingTasteSimulation />
+      )}
+
+
+
+      {!testPage ? (
+      <section id="pricing" className="mx-auto w-full max-w-7xl px-5 py-20 sm:px-8 lg:px-10">
         <div className="rounded-[2rem] bg-[#061b31] p-6 text-white shadow-[rgba(3,3,39,0.24)_0px_40px_80px_-40px] sm:p-10">
           <div className="grid gap-8 lg:grid-cols-[0.95fr_1fr] lg:items-end">
             <div>
@@ -560,8 +588,10 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
           </div>
         </div>
       </section>
+      ) : null}
 
-      <section id="waitlist" className={`${testPage ? "hidden" : ""} mx-auto w-full max-w-7xl px-5 pb-10 sm:px-8 lg:px-10`}>
+      {!testPage ? (
+      <section id="waitlist" className="mx-auto w-full max-w-7xl px-5 pb-10 sm:px-8 lg:px-10">
         <div className="grid gap-8 rounded-3xl border border-[#c7d3e3] bg-white p-6 shadow-[rgba(50,50,93,0.18)_0px_30px_60px_-38px] sm:p-8 lg:grid-cols-[0.82fr_1fr] lg:items-center">
           <div>
             <SectionEyebrow>출시 알림 받기</SectionEyebrow>
@@ -595,8 +625,10 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
           </form>
         </div>
       </section>
+      ) : null}
 
-      <section className={`${testPage ? "hidden" : ""} mx-auto w-full max-w-7xl px-5 pb-24 sm:px-8 lg:px-10`}>
+      {!testPage ? (
+      <section className="mx-auto w-full max-w-7xl px-5 pb-24 sm:px-8 lg:px-10">
         <div className="grid gap-8 rounded-3xl border border-[#e5edf5] bg-white p-6 shadow-[rgba(23,23,23,0.06)_0px_18px_44px_-28px] sm:p-8 lg:grid-cols-[0.78fr_1fr]">
           <div>
             <SectionEyebrow>앞으로 추가될 기능</SectionEyebrow>
@@ -615,22 +647,23 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
           </div>
         </div>
       </section>
+      ) : null}
     </main>
   );
 }
 
 function HeroBenefitPanel() {
   return (
-    <div className="rounded-[28px] border border-[#e5edf5] bg-white p-5 shadow-[rgba(50,50,93,0.2)_0px_30px_55px_-36px,rgba(0,0,0,0.08)_0px_18px_36px_-24px] sm:p-6">
+    <div className="cm-card rounded-[28px] p-5 sm:p-6">
       <p className="text-sm font-black text-[#0b2545]">처음 화면에서 확인할 내용</p>
       <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31]">
         계산기는 뒤로 두고, 먼저 판단 기준을 보여줍니다.
       </h2>
       <div className="mt-6 space-y-3">
-        {heroBenefitCards.map((card, index) => (
-          <article key={card.title} className="rounded-2xl border border-[#e5edf5] bg-[#f8fbff] p-4">
-            <p className="text-xs font-black text-[#0b2545]">{index + 1}</p>
-            <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[#061b31]">{card.title}</h3>
+        {heroBenefitCards.map((card) => (
+          <article key={card.title} className="cm-card-muted rounded-2xl p-4">
+            <p className="inline-flex rounded-full border border-[#d7e3f1] bg-white px-2.5 py-1 text-[11px] font-black text-[#0b2545]">{card.eyebrow}</p>
+            <h3 className="mt-3 text-lg font-semibold tracking-[-0.03em] text-[#061b31]">{card.title}</h3>
             <p className="mt-2 text-sm leading-6 text-[#64748d]">{card.body}</p>
           </article>
         ))}
@@ -647,6 +680,26 @@ function BrandMark() {
   );
 }
 
+function LandingTasteSimulation() {
+  return (
+    <section id="demo" className="mx-auto w-full max-w-7xl px-5 py-16 sm:px-8 lg:px-10">
+      <div className="grid gap-5 rounded-[2rem] border border-[#dbe5f0] bg-white p-6 shadow-[rgba(15,23,42,0.10)_0px_26px_60px_-34px] sm:p-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <div>
+          <SectionEyebrow>맛보기 계산</SectionEyebrow>
+          <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31] sm:text-5xl">아메리카노 한 잔만 먼저 보면 이렇습니다.</h2>
+          <p className="mt-4 text-base leading-7 text-[#64748d]">랜딩에서는 판단 기준만 보여주고, 실제 입력과 그래프 조정은 계산기에서 합니다.</p>
+          <Link href="/calculator" className="cm-button-primary mt-6 inline-flex rounded-lg px-5 py-3 text-sm font-bold">지금 내 카페로 계산하기 →</Link>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Metric label="현재가" value="3,500원" />
+          <Metric label="한 잔 원가" value="1,200원" />
+          <Metric label="남는 돈" value="2,300원" emphasis />
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function CalculatorUseGuide() {
   const steps = [
     { title: "1. 메뉴를 고르세요", body: "아메리카노나 휘낭시에처럼 먼저 확인할 메뉴 하나를 선택합니다." },
@@ -655,7 +708,7 @@ function CalculatorUseGuide() {
   ];
 
   return (
-    <div className="rounded-[26px] border border-[#dce7f2] bg-white p-4 shadow-[rgba(11,37,69,0.10)_0px_18px_50px_-34px] sm:p-5">
+    <div className="cm-card rounded-[26px] p-4 sm:p-5">
       <p className="text-sm font-black text-[#0b2545]">이럴 때 확인하세요</p>
       <h2 className="mt-2 text-[22px] font-semibold leading-tight tracking-[-0.04em] text-[#061b31] sm:text-2xl">가격표 쓰기 전, 한 잔에 얼마 남는지 먼저 보세요.</h2>
       <div className="mt-4 hidden gap-2 sm:grid sm:grid-cols-3">
@@ -697,6 +750,7 @@ function RecipePricingSection({
   onChangeMobileView,
   onSaveCalculator,
   saveMessage,
+  showStickyResult = true,
 }: {
   product: ProductCostingResult;
   simulatedProduct: ProductCostingResult;
@@ -717,6 +771,7 @@ function RecipePricingSection({
   onChangeMobileView?: (view: MobileCalculatorView) => void;
   onSaveCalculator?: () => void;
   saveMessage?: string;
+  showStickyResult?: boolean;
 }) {
   const selectedPoint = {
     price: selectedPrice,
@@ -733,7 +788,7 @@ function RecipePricingSection({
   const showDetailsOnMobile = mobileView === "details";
 
   return (
-    <section id="recipe-pricing" className={`bg-[#f5f5f7] ${compact ? "py-7" : "py-20"}`}>
+    <section id="recipe-pricing" className={`bg-[#f5f5f7] ${compact ? "pb-28 pt-7 sm:pb-7" : "py-20"}`}>
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-8 lg:px-10">
         {!compact ? (
           <div className="mx-auto max-w-3xl text-center">
@@ -755,7 +810,7 @@ function RecipePricingSection({
         ) : null}
 
         <div key={compact ? mobileView : "desktop"} className={`soft-slide-in grid ${compact ? "mt-4" : "mt-8"} gap-5 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start`}>
-          <div className={`${compact && showDetailsOnMobile ? "hidden sm:block" : ""} w-full max-w-full rounded-[28px] bg-white p-4 shadow-[rgba(0,0,0,0.12)_0px_18px_55px_-32px] sm:rounded-[32px] sm:p-7`}>
+          <div className={`${compact && showDetailsOnMobile ? "hidden sm:block" : ""} w-full max-w-full cm-card rounded-[28px] p-4 sm:rounded-[32px] sm:p-7`}>
             <div className={`${compact && !showAdjustOnMobile ? "hidden sm:block" : ""}`}>
               <label className="block text-sm font-semibold tracking-[-0.01em] text-[#6e6e73]" htmlFor="recipe-product">
                 메뉴 선택
@@ -840,7 +895,7 @@ function RecipePricingSection({
             ) : (
               <OwnerDemoCard productName={simulatedProduct.name} salePrice={selectedPrice} profit={simulatedProduct.profit} decision={priceDecision} showEyebrow={false} />
             )}
-            <details open={compact && showDetailsOnMobile ? true : undefined} className="w-full max-w-full rounded-[28px] bg-white p-5 shadow-[rgba(0,0,0,0.1)_0px_18px_50px_-34px]">
+            <details open={compact && showDetailsOnMobile ? true : undefined} className="w-full max-w-full cm-card rounded-[28px] p-5">
               <summary className="cursor-pointer list-none text-[17px] font-semibold tracking-[-0.02em] text-[#0066cc]">
                 자세히 보기: 계산 근거와 참고값
               </summary>
@@ -868,6 +923,14 @@ function RecipePricingSection({
           </div>
         </div>
       </div>
+      {compact && showStickyResult ? (
+        <MobileStickyResultBar
+          profit={simulatedProduct.profit}
+          marginRate={simulatedProduct.marginRate}
+          currentView={mobileView}
+          onChangeView={onChangeMobileView}
+        />
+      ) : null}
     </section>
   );
 }
@@ -950,7 +1013,7 @@ function CurrentPriceResultCard({
   compact?: boolean;
 }) {
   return (
-    <div className={`${compact ? "mt-5" : ""} rounded-[28px] bg-[#1d1d1f] p-5 text-white sm:p-7`}>
+    <div className={`${compact ? "mt-5" : ""} cm-card-dark rounded-[28px] p-5 text-white sm:p-7`}>
       <p className="text-sm font-semibold text-white/60">지금 가격으로 보면</p>
       <div className="mt-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -975,10 +1038,10 @@ function PriceDecisionCard({ decision }: { decision: PriceDecisionSummary }) {
   const isPositive = decision.monthlyProfitDelta >= 0;
 
   return (
-    <div className="mt-4 rounded-[28px] border border-[#c7d3e3] bg-[#f8fbff] p-4 sm:p-5">
+    <div className="mt-4 cm-card-muted rounded-[28px] p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm font-black text-[#0b2545]">추천 검토가</p>
+          <div className="text-sm font-black text-[#0b2545]"><TermTooltip term="추천 검토가" description="목표 마진율 60% 기준 역산값입니다. 시장 시세나 손님 반응을 반영한 확정 추천가는 아닙니다." /></div>
           <p className="mt-1 text-[34px] font-black leading-none tracking-[-0.055em] text-[#061b31]">{formatWon(decision.recommendedReviewPrice)}</p>
         </div>
         <span className={`w-fit rounded-full px-3 py-1.5 text-xs font-black ${isPositive ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
@@ -990,8 +1053,8 @@ function PriceDecisionCard({ decision }: { decision: PriceDecisionSummary }) {
         <SimpleMetric label="변경 후 월 이익" value={formatWon(decision.projectedMonthlyProfit)} />
         <SimpleMetric label="줄어도 버틸 판매량" value={decision.breakEvenSalesDropRate === null ? "계산 불가" : `${formatPercent(decision.breakEvenSalesDropRate)} 감소까지`} />
         <SimpleMetric label="최대 이익점" value={formatWon(decision.bestProfitPrice)} />
-        <SimpleMetric label="손익분기 판매량" value={decision.breakEvenMonthlyCups === null ? "계산 불가" : `${formatNumber(decision.breakEvenMonthlyCups)}잔`} />
-        <SimpleMetric label="채널 비용 반영 후 잔당" value={formatWon(decision.selectedNetProfitPerCup)} />
+        <SimpleMetric label={<TermTooltip term="손익분기 판매량" description="이 메뉴를 팔아서 월 고정비를 100% 회수하려면 최소 이만큼은 팔아야 한다는 뜻입니다." />} value={decision.breakEvenMonthlyCups === null ? "계산 불가" : `${formatNumber(decision.breakEvenMonthlyCups)}잔`} />
+        <SimpleMetric label={<TermTooltip term="채널 비용" description="배달앱 수수료, 카드 수수료, 포장 용기 값 등 판매가 일어날 때마다 무조건 나가는 비용입니다." />} value={formatWon(decision.selectedNetProfitPerCup)} />
       </div>
       <p className="mt-3 text-xs font-semibold leading-5 text-[#64748d]">
         선택 가격 {formatWon(decision.selectedPrice)} · 월 {formatNumber(decision.currentMonthlyCups)}잔 기준 · {decision.sensitivityLabel} 가정입니다.
@@ -1000,25 +1063,59 @@ function PriceDecisionCard({ decision }: { decision: PriceDecisionSummary }) {
   );
 }
 
-function SaveCalculatorCard({ onSave, message }: { onSave?: () => void; message?: string }) {
+function SaveCalculatorCard({ onSave, message, variant = "mobile" }: { onSave?: () => void; message?: string; variant?: "mobile" | "desktop" }) {
   return (
-    <div className="mt-4 rounded-[24px] border border-[#dce7f2] bg-[#f5faff] p-4 sm:hidden">
+    <div className={`${variant === "mobile" ? "mt-4 sm:hidden" : "hidden lg:block"} cm-card-muted rounded-[24px] p-4`}>
       <p className="text-sm font-semibold text-[#0b2545]">다시 보기</p>
       <p className="mt-1 text-sm leading-6 text-[#64748d]">{message}</p>
       <button
         type="button"
         onClick={onSave}
-        className="mt-3 w-full rounded-2xl bg-[#0b2545] px-4 py-3 text-sm font-semibold text-white"
+        className="cm-button-primary mt-3 w-full rounded-2xl px-4 py-3 text-sm font-semibold"
       >
-        저장하고 링크 복사
+        계산 결과 저장하기
       </button>
     </div>
   );
 }
 
-function SimpleMetric({ label, value }: { label: string; value: string }) {
+function MobileStickyResultBar({
+  profit,
+  marginRate,
+  currentView,
+  onChangeView,
+}: {
+  profit: number;
+  marginRate: number;
+  currentView: MobileCalculatorView;
+  onChangeView?: (view: MobileCalculatorView) => void;
+}) {
   return (
-    <div className="rounded-2xl bg-white p-4 shadow-[rgba(0,0,0,0.08)_0px_12px_30px_-24px] sm:bg-[#f5f5f7] sm:shadow-none">
+    <div className="cm-mobile-bottom-sheet fixed inset-x-3 bottom-3 z-40 rounded-[24px] border border-[#c8d6e6] bg-white/95 p-3 shadow-[rgba(15,23,42,0.24)_0px_18px_44px_-18px] backdrop-blur sm:hidden">
+      <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
+        <div className="rounded-2xl bg-[#eef5fb] px-3 py-2">
+          <p className="text-[11px] font-black text-[#64748d]">한 잔 이익</p>
+          <p className="mt-0.5 whitespace-nowrap text-base font-black tracking-[-0.03em] text-[#0b2545]">{formatWon(profit)}</p>
+        </div>
+        <div className="rounded-2xl bg-[#f8fafc] px-3 py-2">
+          <p className="text-[11px] font-black text-[#64748d]">마진율</p>
+          <p className="mt-0.5 whitespace-nowrap text-base font-black tracking-[-0.03em] text-[#061b31]">{formatPercent(marginRate)}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onChangeView?.(currentView === "adjust" ? "result" : "adjust")}
+          className="cm-button-primary h-full rounded-2xl px-3 text-xs font-black"
+        >
+          {currentView === "adjust" ? "결과" : "입력"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SimpleMetric({ label, value }: { label: ReactNode; value: string }) {
+  return (
+    <div className="rounded-2xl border border-[#e7edf5] bg-white p-4 shadow-[rgba(15,23,42,0.06)_0px_10px_26px_-20px] sm:bg-[#f8fafc] sm:shadow-none">
       <p className="text-xs font-semibold tracking-[-0.01em] text-[#86868b]">{label}</p>
       <p className="mt-1 whitespace-nowrap text-2xl font-semibold tracking-[-0.045em] text-[#1d1d1f]">{value}</p>
     </div>
@@ -1041,7 +1138,7 @@ function OwnerDemoCard({
   showEyebrow?: boolean;
 }) {
   return (
-    <div id="demo" className={`${compact ? "mt-4" : ""} w-full max-w-full rounded-[28px] bg-white p-5 shadow-[rgba(0,0,0,0.1)_0px_18px_50px_-34px]`}>
+    <div id="demo" className={`${compact ? "mt-4" : ""} w-full max-w-full cm-card rounded-[28px] p-5`}>
       {showEyebrow ? <p className="text-sm font-semibold text-[#6e6e73]">샘플 계산 흐름</p> : null}
       <h3 className={`${showEyebrow ? "mt-2" : ""} text-2xl font-semibold leading-tight tracking-[-0.04em] text-[#1d1d1f]`}>가격표 만들기 전 30초 확인</h3>
       {decision ? (
@@ -1171,7 +1268,7 @@ function PriceControlCard({
         <button
           type="button"
           onClick={onShowResult}
-          className="mt-4 w-full rounded-2xl bg-[#0071e3] px-4 py-3 text-sm font-semibold text-white sm:hidden"
+          className="cm-button-primary mt-4 w-full rounded-2xl px-4 py-3 text-sm font-semibold sm:hidden"
         >
           조정한 가격으로 결과 보기
         </button>
@@ -1182,14 +1279,14 @@ function PriceControlCard({
 
 function SensitivityControl({ selected, onChange }: { selected: SalesSensitivity; onChange: (sensitivity: SalesSensitivity) => void }) {
   const options: Array<{ id: SalesSensitivity; label: string; helper: string }> = [
-    { id: "low", label: "보수적", helper: "덜 줄어듦" },
-    { id: "medium", label: "보통", helper: "기본" },
-    { id: "high", label: "민감", helper: "많이 줄어듦" },
+    { id: "low", label: "보수적", helper: "가격 10%↑ → 판매량 -5%" },
+    { id: "medium", label: "보통", helper: "가격 10%↑ → 판매량 -10%" },
+    { id: "high", label: "민감", helper: "가격 10%↑ → 판매량 -20%" },
   ];
 
   return (
     <div className="mt-4 rounded-2xl bg-white p-3">
-      <p className="text-xs font-black text-[#64748d]">가격을 올리면 판매량이 얼마나 줄까요?</p>
+      <div className="text-xs font-black text-[#64748d]"><TermTooltip term="민감도" description="가격을 올렸을 때 손님들이 얼마나 예민하게 반응하여 구매를 줄일지 예상하는 정도입니다." />: 가격을 올리면 판매량이 얼마나 줄까요?</div>
       <div className="mt-2 grid grid-cols-3 gap-2">
         {options.map((option) => (
           <button
@@ -1212,7 +1309,7 @@ function ChannelCostToggle({ enabled, onChange, decision }: { enabled: boolean; 
     <div className="mt-3 rounded-2xl bg-white p-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black text-[#64748d]">매장·포장·배달 비용도 같이 볼까요?</p>
+          <div className="text-xs font-black text-[#64748d]"><TermTooltip term="채널 비용" description="배달앱 수수료, 카드 수수료, 포장 용기 값 등 판매가 일어날 때마다 무조건 나가는 비용입니다." />도 같이 볼까요?</div>
           <p className="mt-1 text-[11px] font-bold leading-5 text-[#64748d]">
             카드 2%, 배달 15%, 배달 포장비 250원을 샘플로 반영합니다.
           </p>
@@ -1324,7 +1421,7 @@ function PriceSimulationChart({
         <GraphMetric label="목표 마진 차이" value={`${marginDelta >= 0 ? "+" : ""}${formatPercent(marginDelta)}`} strong={marginDelta >= 0} />
         <GraphMetric label="판매량 변화" value={`${salesDelta >= 0 ? "+" : ""}${formatNumber(salesDelta)}%p`} />
         <GraphMetric label="최대 이익점" value={formatWon(decision.bestProfitPrice)} strong />
-        <GraphMetric label="손익분기 판매량" value={decision.breakEvenMonthlyCups === null ? "계산 불가" : `${formatNumber(decision.breakEvenMonthlyCups)}잔`} />
+        <GraphMetric label={<TermTooltip term="손익분기 판매량" description="이 메뉴를 팔아서 월 고정비를 100% 회수하려면 최소 이만큼은 팔아야 한다는 뜻입니다." />} value={decision.breakEvenMonthlyCups === null ? "계산 불가" : `${formatNumber(decision.breakEvenMonthlyCups)}잔`} />
       </div>
       <p className="mt-3 text-xs font-semibold leading-5 text-[#64748d]">
         예상 판매량은 현재 판매가를 100으로 둔 참고 지수입니다. 실제 판매량은 상권, 시즌, 고객 반응에 따라 달라집니다.
@@ -1333,7 +1430,7 @@ function PriceSimulationChart({
   );
 }
 
-function GraphMetric({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+function GraphMetric({ label, value, strong = false }: { label: ReactNode; value: string; strong?: boolean }) {
   return (
     <div className={`${strong ? "bg-[#eef5fb]" : "bg-[#f8fbff]"} rounded-2xl px-3 py-2`}>
       <p className="text-[11px] font-bold text-[#64748d]">{label}</p>
@@ -1345,7 +1442,7 @@ function GraphMetric({ label, value, strong = false }: { label: string; value: s
 function ChannelCostCard({ includeChannelCosts, decision }: { includeChannelCosts: boolean; decision: PriceDecisionSummary }) {
   return (
     <div className="rounded-[28px] border border-[#e5edf5] bg-white p-4 shadow-[rgba(23,23,23,0.06)_0px_18px_44px_-28px] sm:p-6">
-      <p className="text-sm font-bold text-[#0b2545]">채널 비용 샘플</p>
+      <div className="text-sm font-bold text-[#0b2545]"><TermTooltip term="채널 비용" description="배달앱 수수료, 카드 수수료, 포장 용기 값 등 판매가 일어날 때마다 무조건 나가는 비용입니다." /> 샘플</div>
       <h3 className="mt-2 text-[22px] font-light leading-tight tracking-[-0.03em] text-[#061b31] sm:text-2xl">
         {includeChannelCosts ? `잔당 ${formatWon(decision.channelCostPerCup)}을 추가 비용으로 봅니다` : "채널 비용은 현재 제외했습니다"}
       </h3>
@@ -1406,7 +1503,7 @@ function RecipeDetailCard({ product }: { product: ProductCostingResult }) {
     <div className="rounded-[28px] border border-[#e5edf5] bg-white p-4 shadow-[rgba(23,23,23,0.06)_0px_18px_44px_-28px] sm:p-6">
       <p className="text-sm font-bold text-[#0b2545]">접기/펼치기 원가 상세</p>
       <div className="mt-4 space-y-3">
-        <details open className="rounded-2xl border border-[#e5edf5] bg-[#f8fbff] p-4">
+        <details open className="cm-card-muted rounded-2xl p-4">
           <summary className="cursor-pointer text-sm font-black text-[#061b31]">1. 원재료 환산</summary>
           <div className="mt-3 space-y-3">
             {product.ingredientLines.map((line) => (
@@ -1422,7 +1519,7 @@ function RecipeDetailCard({ product }: { product: ProductCostingResult }) {
             ))}
           </div>
         </details>
-        <details className="rounded-2xl border border-[#e5edf5] bg-[#f8fbff] p-4">
+        <details className="cm-card-muted rounded-2xl p-4">
           <summary className="cursor-pointer text-sm font-black text-[#061b31]">2. 포장재/인건비/고정비</summary>
           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Metric label="포장재" value={formatWon(product.packagingCost)} />
@@ -1431,7 +1528,7 @@ function RecipeDetailCard({ product }: { product: ProductCostingResult }) {
           </div>
         </details>
         {product.productionType === "batch" ? (
-          <details className="rounded-2xl border border-[#e5edf5] bg-[#f8fbff] p-4">
+          <details className="cm-card-muted rounded-2xl p-4">
             <summary className="cursor-pointer text-sm font-black text-[#061b31]">3. 베이커리 배치 생산</summary>
             <p className="mt-3 text-sm leading-6 text-[#64748d]">
               이론 생산량 {product.batchYieldCount}개에서 굽기 손실 {product.batchLossRate}%와 폐기 {product.defectiveCount}개를 반영해 판매 가능 수량을 {product.sellableYieldCount}개로 봅니다.
@@ -1443,6 +1540,8 @@ function RecipeDetailCard({ product }: { product: ProductCostingResult }) {
   );
 }
 
+void RecipePricingSection;
+
 function getSimulationRange(product: ProductCostingResult) {
   return {
     minPrice: Math.max(1000, Math.floor(product.totalCost / 500) * 500),
@@ -1450,7 +1549,15 @@ function getSimulationRange(product: ProductCostingResult) {
   };
 }
 
-function ResultPanel({ result, verdict }: { result: MultiMenuMarginResult; verdict: PortfolioVerdict }) {
+function ResultPanel({
+  result,
+  verdict,
+  hasCalculatorInput,
+}: {
+  result: MultiMenuMarginResult;
+  verdict: PortfolioVerdict;
+  hasCalculatorInput: boolean;
+}) {
   return (
     <div className="rounded-3xl border border-[#e5edf5] bg-white p-6 shadow-[rgba(50,50,93,0.18)_0px_30px_45px_-34px,rgba(0,0,0,0.08)_0px_18px_36px_-24px]">
       <p className="text-sm font-bold text-[#0b2545]">가게 전체 결과</p>
@@ -1461,12 +1568,19 @@ function ResultPanel({ result, verdict }: { result: MultiMenuMarginResult; verdi
         <Metric label="월 운영비" value={formatWon(result.totalFixedCost)} />
         <Metric label="월 예상 이익" value={formatWon(result.totalProfit)} emphasis />
         <Metric label="잔당 월 비용" value={formatWon(result.fixedCostPerCup)} />
-        <Metric label="통합 마진율" value={formatPercent(result.blendedMarginRate)} emphasis />
+        <Metric label={<TermTooltip term="통합 마진율" description="모든 메뉴의 매출, 변동비, 월 운영비를 함께 반영해 가게 전체로 얼마나 남는지 보는 비율입니다." />} value={formatPercent(result.blendedMarginRate)} emphasis />
       </div>
-      <div className={`mt-5 rounded-xl border px-4 py-4 ${verdict.className}`}>
-        <p className="font-black">{verdict.title}</p>
-        <p className="mt-1 text-sm leading-6 opacity-80">{verdict.description}</p>
-      </div>
+      {hasCalculatorInput ? (
+        <div className={`mt-5 rounded-xl border px-4 py-4 ${verdict.className}`}>
+          <p className="font-black">{verdict.title}</p>
+          <p className="mt-1 text-sm leading-6 opacity-80">{verdict.description}</p>
+        </div>
+      ) : (
+        <div className="mt-5 rounded-xl border border-[#c7d3e3] bg-[#f8fbff] px-4 py-4 text-[#273951]">
+          <p className="font-black">아직 계산 전이에요</p>
+          <p className="mt-1 text-sm leading-6 text-[#64748d]">월 운영비, 판매잔수, 판매가와 원가를 입력하면 예상 손익이 표시됩니다.</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -1588,20 +1702,33 @@ function PriceRiskPanel({
       <p className="mt-4 text-xs font-bold leading-5 text-[#64748d]">
         가격을 바꾼 뒤에는 다음 달 실제 판매량과 함께 다시 보세요.
       </p>
-      <a href="#waitlist" className="mt-3 block rounded-xl bg-[#0b2545] px-4 py-3 text-center text-sm font-black text-white shadow-[rgba(11,37,69,0.3)_0px_16px_30px_-16px] transition duration-300 hover:-translate-y-0.5 hover:bg-[#123a63]">
-        출시 알림 받고 계산 저장하기
-      </a>
+      <p className="mt-3 rounded-xl bg-white px-4 py-3 text-center text-sm font-black text-[#0b2545] ring-1 ring-[#c7d3e3]">
+        결과 저장은 오른쪽 아래 “계산 결과 저장하기” 버튼에서 할 수 있어요.
+      </p>
     </div>
   );
 }
 
-function MenuBreakdownPanel({ menus, onSelectMenu }: { menus: MenuMarginResult[]; onSelectMenu: (menuId: string) => void }) {
+function MenuBreakdownPanel({
+  menus,
+  onSelectMenu,
+  hasCalculatorInput,
+}: {
+  menus: MenuMarginResult[];
+  onSelectMenu: (menuId: string) => void;
+  hasCalculatorInput: boolean;
+}) {
   return (
     <div className="rounded-[28px] border border-[#e5edf5] bg-white p-4 shadow-[rgba(23,23,23,0.06)_0px_18px_44px_-28px] sm:p-6">
       <h3 className="text-2xl font-light tracking-[-0.03em] text-[#061b31]">메뉴별 손익</h3>
       <div className="mt-4 space-y-3">
-        {menus.map((menu) => (
-          <div key={menu.id} className="rounded-2xl border border-[#e5edf5] bg-[#f8fbff] p-4">
+        {!hasCalculatorInput ? (
+          <div className="rounded-2xl border border-dashed border-[#c7d3e3] bg-[#f8fbff] p-4 text-sm font-semibold leading-6 text-[#64748d]">
+            메뉴 정보를 입력하면 잔당 이익과 월 이익이 여기에 표시됩니다.
+          </div>
+        ) : null}
+        {hasCalculatorInput ? menus.map((menu) => (
+          <div key={menu.id} className="cm-card-muted rounded-2xl p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-bold text-[#061b31]">{menu.menuName || "이름 없는 메뉴"}</p>
@@ -1621,18 +1748,48 @@ function MenuBreakdownPanel({ menus, onSelectMenu }: { menus: MenuMarginResult[]
               이 메뉴 가격 바꿔보기
             </button>
           </div>
-        ))}
+        )) : null}
       </div>
     </div>
   );
 }
 
-function Metric({ label, value, emphasis = false, dark = false }: { label: string; value: string; emphasis?: boolean; dark?: boolean }) {
+function Metric({ label, value, emphasis = false, dark = false }: { label: ReactNode; value: string; emphasis?: boolean; dark?: boolean }) {
   return (
     <div className={`rounded-xl p-4 ${dark ? "bg-white/10" : emphasis ? "bg-[#f0f0ff]" : "bg-[#f8fbff]"}`}>
       <p className={`text-xs font-bold ${dark ? "text-white/60" : "text-[#64748d]"}`}>{label}</p>
       <p className={`mt-2 text-xl font-light tracking-[-0.03em] ${dark ? "text-white" : "text-[#061b31]"}`}>{value}</p>
     </div>
+  );
+}
+
+function TermTooltip({ term, description }: { term: string; description: string }) {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [open]);
+
+  return (
+    <span className="relative inline-flex items-center gap-1 align-baseline" onPointerDown={(event) => event.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="inline-flex items-center gap-1 border-b border-dotted border-current text-inherit"
+        aria-expanded={open}
+      >
+        <span>{term}</span>
+        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#e8f0f8] text-[10px] font-black text-[#0b2545]">?</span>
+      </button>
+      {open ? (
+        <span className="absolute left-0 top-full z-50 mt-2 w-[min(260px,80vw)] rounded-2xl border border-[#c8d6e6] bg-white p-3 text-left text-xs font-bold leading-5 text-[#334155] shadow-[rgba(15,23,42,0.18)_0px_18px_42px_-16px]">
+          {description}
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -1672,6 +1829,19 @@ function getPortfolioVerdict(result: MultiMenuMarginResult): PortfolioVerdict {
     description: "메뉴별 월 이익을 비교해 많이 남는 메뉴는 더 밀고, 마진이 얇은 메뉴는 가격이나 레시피를 조정해볼 수 있습니다.",
     className: "border-emerald-200 bg-emerald-50 text-emerald-900",
   };
+}
+
+function hasMeaningfulMenuInput(menu: MenuMarginInput) {
+  return (
+    menu.salePrice > 0 ||
+    menu.ingredientCost > 0 ||
+    menu.packagingCost > 0 ||
+    menu.platformFeeRate > 0 ||
+    menu.wasteRate > 0 ||
+    menu.laborCostPerCup > 0 ||
+    menu.extraCost > 0 ||
+    menu.expectedMonthlyCups > 0
+  );
 }
 
 function parseNumberInput(value: string) {

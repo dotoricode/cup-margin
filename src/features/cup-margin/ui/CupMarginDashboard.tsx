@@ -30,9 +30,9 @@ export function CupMarginDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f5f5f7] text-[#061b31]">
+    <main className="cm-shell min-h-screen text-[#061b31]">
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-8 lg:px-10">
-        <nav className="rounded-2xl border border-[#e5edf5] bg-white/90 px-3 py-3 shadow-[rgba(50,50,93,0.12)_0px_16px_40px_-24px] backdrop-blur sm:px-4">
+        <nav className="cm-nav rounded-2xl px-3 py-3 sm:px-4">
           <div className="flex min-w-0 items-center justify-between gap-3">
             <Link href="/" className="flex min-w-0 items-center gap-3" aria-label="컵마진 홈">
               <PictureLogo />
@@ -42,13 +42,13 @@ export function CupMarginDashboard() {
               </div>
             </Link>
             <div className="hidden items-center gap-2 sm:flex">
-              <Link href="/" className="rounded-lg border border-[#d8e2ee] bg-white px-3 py-2.5 text-sm font-bold text-[#0b2545]">랜딩</Link>
-              <Link href="/calculator" className="rounded-lg bg-[#0b2545] px-3 py-2.5 text-sm font-bold text-white sm:px-4 shadow-[rgba(11,37,69,0.35)_0px_14px_28px_-14px]">계산</Link>
+              <Link href="/" className="cm-button-secondary rounded-lg px-3 py-2.5 text-sm font-bold">랜딩</Link>
+              <Link href="/calculator" className="cm-button-primary rounded-lg px-3 py-2.5 text-sm font-bold sm:px-4">계산</Link>
             </div>
             <button
               type="button"
               onClick={() => setNavOpen((current) => !current)}
-              className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-[#d8e2ee] bg-white px-3 py-2 text-sm font-black text-[#0b2545] shadow-sm sm:hidden"
+              className="cm-button-secondary inline-flex shrink-0 items-center gap-2 rounded-xl px-3 py-2 text-sm font-black sm:hidden"
               aria-expanded={navOpen}
               aria-controls="dashboard-mobile-navigation"
             >
@@ -57,16 +57,16 @@ export function CupMarginDashboard() {
           </div>
           {navOpen ? (
             <div id="dashboard-mobile-navigation" className="mt-3 grid gap-2 rounded-2xl bg-[#f5f8fb] p-2 text-sm font-bold text-[#273951] sm:hidden">
-              <Link href="/" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>랜딩으로 이동</Link>
-              <Link href="/calculator" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>30초 계산기</Link>
-              <a href="#scenario" className="rounded-xl bg-white px-4 py-3 shadow-sm" onClick={() => setNavOpen(false)}>언제 쓰나요</a>
+              <Link href="/" className="cm-menu-item rounded-xl px-4 py-3" onClick={() => setNavOpen(false)}>랜딩으로 이동</Link>
+              <Link href="/calculator" className="cm-menu-item rounded-xl px-4 py-3" onClick={() => setNavOpen(false)}>30초 계산기</Link>
+              <a href="#scenario" className="cm-menu-item rounded-xl px-4 py-3" onClick={() => setNavOpen(false)}>언제 쓰나요</a>
             </div>
           ) : null}
         </nav>
 
         <section className="grid gap-5 py-5 sm:py-8 lg:grid-cols-[1fr_420px] lg:items-start">
           <div className="space-y-5">
-            <div className="rounded-[28px] bg-[#061b31] p-5 text-white sm:rounded-[32px] shadow-[rgba(3,3,39,0.22)_0px_36px_80px_-44px] sm:p-8">
+            <div className="cm-card-dark rounded-[28px] p-5 text-white sm:rounded-[32px] shadow-[rgba(3,3,39,0.22)_0px_36px_80px_-44px] sm:p-8">
               <p className="text-sm font-semibold text-white/60">계산 결과 예시</p>
               <h1 className="mt-3 text-[32px] font-semibold leading-tight tracking-[-0.055em] sm:text-6xl">
                 이번 달<br />얼마 남을까요?
@@ -87,7 +87,7 @@ export function CupMarginDashboard() {
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-5">
-            <div className="rounded-[28px] bg-white p-5 shadow-[rgba(0,0,0,0.12)_0px_18px_55px_-32px]">
+            <div className="cm-card rounded-[28px] p-5">
               <p className="text-sm font-bold text-[#0b2545]">가격과 판매량을 조정해보세요</p>
               <p className="mt-2 text-sm leading-6 text-[#64748d]">음료·디저트·푸드 메뉴를 같이 봅니다. 움직이면 결과와 그래프가 바로 바뀝니다.</p>
               <div className="mt-5 space-y-5">
@@ -97,7 +97,7 @@ export function CupMarginDashboard() {
               </div>
             </div>
 
-            <div className="rounded-[28px] bg-white p-5 shadow-[rgba(0,0,0,0.1)_0px_18px_50px_-34px]">
+            <div className="cm-card rounded-[28px] p-5">
               <p className="text-sm font-bold text-[#0b2545]">월 운영비</p>
               <p className="mt-2 text-3xl font-semibold tracking-[-0.045em]">{formatWon(input.monthlyFixedCost)}</p>
               <input
@@ -114,7 +114,7 @@ export function CupMarginDashboard() {
                 <span>30만원</span>
                 <span>200만원</span>
               </div>
-              <p className="mt-4 rounded-2xl bg-[#f5f5f7] px-4 py-3 text-sm leading-6 text-[#64748d]">
+              <p className="mt-4 rounded-2xl border border-[#e7edf5] bg-[#f8fafc] px-4 py-3 text-sm leading-6 text-[#64748d]">
                 임대료·관리비처럼 매달 나가는 비용입니다. 지금 입력값 기준 메뉴 1개당 평균 {formatWon(result.fixedCostPerCup)}씩 반영됩니다.
               </p>
             </div>
@@ -135,19 +135,19 @@ function PictureLogo() {
 
 function DashboardScenarioCard() {
   return (
-    <section id="scenario" className="rounded-[28px] bg-white p-5 shadow-[rgba(0,0,0,0.09)_0px_18px_50px_-34px]">
+    <section id="scenario" className="cm-card rounded-[28px] p-5">
       <p className="text-sm font-bold text-[#0b2545]">언제 쓰나요?</p>
       <h2 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.04em] text-[#1d1d1f]">하루 장사 끝나고 다음 달 가격을 점검할 때</h2>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <div className="rounded-2xl bg-[#f5f5f7] p-3">
+        <div className="cm-card-muted rounded-2xl p-3">
           <p className="text-sm font-black text-[#061b31]">가격 바꾸기 전</p>
           <p className="mt-1 text-[13px] leading-5 text-[#64748d]">아메리카노 가격을 100원씩 움직여 월 이익 변화를 봅니다.</p>
         </div>
-        <div className="rounded-2xl bg-[#f5f5f7] p-3">
+        <div className="cm-card-muted rounded-2xl p-3">
           <p className="text-sm font-black text-[#061b31]">판매량 바뀔 때</p>
           <p className="mt-1 text-[13px] leading-5 text-[#64748d]">행사, 날씨, 시즌 때문에 판매량이 달라질 때 다시 봅니다.</p>
         </div>
-        <div className="rounded-2xl bg-[#f5f5f7] p-3">
+        <div className="cm-card-muted rounded-2xl p-3">
           <p className="text-sm font-black text-[#061b31]">월세·인건비 오를 때</p>
           <p className="mt-1 text-[13px] leading-5 text-[#64748d]">월 운영비를 움직여 메뉴별 부담이 얼마나 늘어나는지 확인합니다.</p>
         </div>
@@ -169,7 +169,7 @@ function MenuSliderCard({
   const volumeMax = Math.max(volumeMin + 100, Math.ceil(menu.expectedMonthlyCups * 1.65 / 10) * 10);
 
   return (
-    <div className="rounded-3xl border border-[#e5edf5] bg-[#fbfcff] p-4">
+    <div className="cm-card-muted rounded-3xl p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-lg font-semibold tracking-[-0.03em] text-[#1d1d1f]">{menu.menuName}</p>
@@ -227,7 +227,7 @@ function ProfitCurve({ menus }: { menus: ReturnType<typeof calculateMultiMenuMar
   const fillPath = `${path} L ${points.at(-1)?.x ?? padding} ${height - padding} L ${padding} ${height - padding} Z`;
 
   return (
-    <div className="rounded-[32px] bg-white p-5 shadow-[rgba(0,0,0,0.1)_0px_18px_55px_-34px] sm:p-6">
+    <div className="cm-card rounded-[32px] p-5 sm:p-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm font-bold text-[#0b2545]">이익 그래프</p>
@@ -235,7 +235,7 @@ function ProfitCurve({ menus }: { menus: ReturnType<typeof calculateMultiMenuMar
         </div>
         <p className="text-sm font-semibold text-[#64748d]">곡선이 높을수록 월 이익이 큽니다</p>
       </div>
-      <div className="mt-6 overflow-hidden rounded-3xl bg-[#f5f5f7] p-4">
+      <div className="mt-6 overflow-hidden rounded-3xl border border-[#e5edf5] bg-[#f8fafc] p-4">
         <svg viewBox={`0 0 ${width} ${height}`} className="h-64 w-full" role="img" aria-label="메뉴별 월 이익 곡선 그래프">
           <defs>
             <linearGradient id="profitFill" x1="0" x2="0" y1="0" y2="1">
@@ -266,7 +266,7 @@ function MenuComparison({ menus }: { menus: ReturnType<typeof calculateMultiMenu
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {menus.map((menu) => (
-        <article key={menu.id} className="rounded-[28px] bg-white p-5 shadow-[rgba(0,0,0,0.09)_0px_18px_50px_-34px]">
+        <article key={menu.id} className="cm-card rounded-[28px] p-5">
           <p className="text-sm font-bold text-[#64748d]">{menu.menuName}</p>
           <p className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.045em] text-[#1d1d1f] sm:text-3xl">{formatWon(menu.profitPerCup)}</p>
           <p className="mt-1 text-sm font-semibold text-[#64748d]">하나 팔 때 남는 돈</p>
@@ -293,7 +293,7 @@ function DarkMetric({ label, value, highlight = false }: { label: string; value:
 
 function LightMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-[#f5f5f7] p-4">
+    <div className="rounded-2xl border border-[#e7edf5] bg-[#f8fafc] p-4">
       <p className="text-xs font-bold text-[#86868b]">{label}</p>
       <p className="mt-1 text-lg font-semibold tracking-[-0.035em] text-[#1d1d1f]">{value}</p>
     </div>

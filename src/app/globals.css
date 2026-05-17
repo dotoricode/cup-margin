@@ -2,9 +2,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f5f7;
-  --foreground: #1d1d1f;
+  --background: #f6f8fb;
+  --foreground: #101828;
   --font-sans-stack: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
+  --cm-bg: #f6f8fb;
+  --cm-surface: #ffffff;
+  --cm-surface-muted: #f8fafc;
+  --cm-ink: #0f172a;
+  --cm-ink-soft: #334155;
+  --cm-muted: #64748b;
+  --cm-line: #dbe5f0;
+  --cm-line-strong: #c8d6e6;
+  --cm-primary: #0b2545;
+  --cm-primary-hover: #123a63;
+  --cm-accent: #2563eb;
+  --cm-success: #059669;
+  --cm-danger: #dc2626;
+  --cm-radius-sm: 12px;
+  --cm-radius-md: 20px;
+  --cm-radius-lg: 28px;
+  --cm-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 1px 1px rgba(15, 23, 42, 0.03);
+  --cm-shadow-md: 0 18px 45px -32px rgba(15, 23, 42, 0.34), 0 6px 18px -16px rgba(15, 23, 42, 0.22);
+  --cm-shadow-lg: 0 34px 80px -48px rgba(15, 23, 42, 0.42), 0 14px 32px -26px rgba(15, 23, 42, 0.26);
+  --cm-focus: 0 0 0 3px rgba(37, 99, 235, 0.18), 0 0 0 1px rgba(37, 99, 235, 0.45);
 }
 
 @theme inline {
@@ -27,9 +47,13 @@ body {
   width: 100%;
   margin: 0;
   overflow-x: hidden;
-  background: var(--background);
+  background:
+    radial-gradient(circle at 12% -10%, rgba(37, 99, 235, 0.10), transparent 30rem),
+    radial-gradient(circle at 88% 4%, rgba(11, 37, 69, 0.09), transparent 28rem),
+    var(--background);
   color: var(--foreground);
   font-family: var(--font-sans-stack);
+  font-feature-settings: "ss01", "tnum";
   text-rendering: geometricPrecision;
   -webkit-font-smoothing: antialiased;
 }
@@ -76,4 +100,122 @@ label {
 
 .soft-slide-in {
   animation: soft-slide-in 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:where(a, button, input, select, summary) {
+  transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  transition-duration: 180ms;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:where(a, button, input, select, summary):focus-visible {
+  outline: none;
+  box-shadow: var(--cm-focus);
+}
+
+:where(button, select, summary) {
+  cursor: pointer;
+}
+
+input[type="range"] {
+  accent-color: var(--cm-accent);
+}
+
+.cm-shell {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(37, 99, 235, 0.10), transparent 26rem),
+    radial-gradient(circle at 82% 0%, rgba(11, 37, 69, 0.08), transparent 24rem),
+    var(--cm-bg);
+}
+
+.cm-nav {
+  border: 1px solid rgba(200, 214, 230, 0.82);
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: var(--cm-shadow-md);
+  backdrop-filter: blur(18px) saturate(1.16);
+}
+
+.cm-card {
+  border: 1px solid rgba(219, 229, 240, 0.92);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--cm-shadow-md);
+}
+
+.cm-card-muted {
+  border: 1px solid rgba(219, 229, 240, 0.86);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.94));
+}
+
+.cm-card-dark {
+  background:
+    radial-gradient(circle at 78% 8%, rgba(37, 99, 235, 0.26), transparent 18rem),
+    linear-gradient(135deg, #081827 0%, #0b2545 55%, #07111f 100%);
+  box-shadow: var(--cm-shadow-lg);
+}
+
+.cm-button-primary {
+  background: var(--cm-primary);
+  color: white;
+  box-shadow: 0 14px 28px -18px rgba(11, 37, 69, 0.62);
+}
+
+.cm-button-primary:hover {
+  background: var(--cm-primary-hover);
+  transform: translateY(-1px);
+}
+
+.cm-button-secondary {
+  border: 1px solid var(--cm-line-strong);
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--cm-primary);
+}
+
+.cm-button-secondary:hover {
+  background: #f8fafc;
+  transform: translateY(-1px);
+}
+
+.cm-menu-item {
+  border: 1px solid rgba(219, 229, 240, 0.84);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--cm-shadow-sm);
+}
+
+.cm-menu-item:hover {
+  border-color: var(--cm-line-strong);
+  transform: translateY(-1px);
+}
+
+.cm-label {
+  color: var(--cm-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.cm-text-muted {
+  color: var(--cm-muted);
+}
+
+.cm-gradient-hero {
+  background:
+    radial-gradient(circle at 18% 8%, rgba(37, 99, 235, 0.13), transparent 24rem),
+    radial-gradient(circle at 82% 2%, rgba(11, 37, 69, 0.14), transparent 22rem),
+    linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+}
+
+@keyframes cm-onboarding-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.22);
+    transform: translateY(0);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(37, 99, 235, 0.06);
+    transform: translateY(-1px);
+  }
+}
+
+.cm-onboarding-pulse {
+  animation: cm-onboarding-pulse 1.8s ease-in-out infinite;
 }
