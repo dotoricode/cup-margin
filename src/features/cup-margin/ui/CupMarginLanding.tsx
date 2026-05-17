@@ -602,7 +602,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
       {testPage ? (
         <MobileStickyResultBar
           profit={selectedMenu?.profitPerCup ?? 0}
-          marginRate={result.blendedMarginRate}
+          marginRate={selectedMenu?.marginRate ?? 0}
           currentView={mobileCalculatorView}
           onChangeView={setMobileCalculatorView}
         />
