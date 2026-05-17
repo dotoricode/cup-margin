@@ -138,7 +138,7 @@ describe("generatePriceSimulation", () => {
 });
 
 describe("buildPriceDecision", () => {
-  it("목표 마진 기준 추천 검토가와 월 이익 변화, 판매량 감소 허용폭을 계산한다", () => {
+  it("목표 마진 기준 최소가와 월 이익 변화, 판매량 감소 허용폭을 계산한다", () => {
     const product = calculateProductCost(latte);
     const decision = buildPriceDecision(product, {
       selectedPrice: 6700,
@@ -155,7 +155,7 @@ describe("buildPriceDecision", () => {
     expect(decision.summary).toContain("월 236,880원 증가");
   });
 
-  it("매장·포장·배달 채널 비용을 반영해 월 이익과 손익분기 판매량을 보수적으로 계산한다", () => {
+  it("매장·포장·배달 채널 비용을 반영해 월 이익과 최소 판매량을 보수적으로 계산한다", () => {
     const product = calculateProductCost(latte);
     const decision = buildPriceDecision(product, {
       selectedPrice: 6700,

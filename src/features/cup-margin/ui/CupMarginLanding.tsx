@@ -13,8 +13,8 @@ import {
   type MultiMenuMarginResult,
   type MenuMarginResult,
 } from "../model/calculateMultiMenuMargin";
-import { buildCalculatorSharePath, parseCalculatorSearch, parseStoredCalculatorState } from "../model/calculatorPersistence";
-import { operatingPacks, pricingPlans } from "../model/copy";
+import { parseCalculatorSearch, parseStoredCalculatorState } from "../model/calculatorPersistence";
+import { pricingPlans } from "../model/copy";
 import { formatNumber, formatPercent, formatWon } from "../model/formatters";
 import {
   buildPriceDecision,
@@ -69,7 +69,15 @@ const menuFields: Array<{
 
 type MobileCalculatorView = "result" | "adjust" | "details";
 
+type SavedMultiMenuState = {
+  id: string;
+  name: string;
+  input: MultiMenuMarginInput;
+  savedAt: string;
+};
+
 const calculatorStorageKey = "cup-margin:calculator:v1";
+const multiMenuStorageKey = "cup-margin:multi-menu:recent:v1";
 
 const DEFAULT_CHANNEL_MIX: ChannelMixOptions = {
   storeRate: 60,
@@ -95,24 +103,6 @@ const problemCards = [
   },
 ];
 
-const heroBenefitCards = [
-  {
-    eyebrow: "먼저",
-    title: "언제 쓰나요?",
-    body: "오픈 전 가격표를 만들 때, 원두·우유·포장재 가격이 올랐을 때, 신메뉴를 소량 테스트하기 전에 씁니다.",
-  },
-  {
-    eyebrow: "다음",
-    title: "무슨 서비스인가요?",
-    body: "컵마진은 카페 메뉴 가격을 정하기 전에 한 잔 원가, 남는 돈, 월 비용 반영값을 한 화면에서 확인하는 손익 계산기입니다.",
-  },
-  {
-    eyebrow: "결과",
-    title: "쓰면 뭐가 좋나요?",
-    body: "감으로 가격을 정하기 전에 손해 가능성을 먼저 보고, 사장님이 실제 가격 판단에 쓸 수 있는 기준만 남깁니다.",
-  },
-];
-
 export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = {}) {
   const [input, setInput] = useState<MultiMenuMarginInput>(() => cloneInput(testPage ? emptyInput : DEFAULT_MULTI_MENU_INPUT));
   const [navOpen, setNavOpen] = useState(false);
@@ -129,7 +119,9 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
   const [salesSensitivity, setSalesSensitivity] = useState<SalesSensitivity>("medium");
   const [includeChannelCosts, setIncludeChannelCosts] = useState(true);
   const [mobileCalculatorView, setMobileCalculatorView] = useState<MobileCalculatorView>("result");
-  const [saveMessage, setSaveMessage] = useState("계산을 저장하면 이 기기와 공유 링크에서 다시 열 수 있어요.");
+  const [saveMessage, setSaveMessage] = useState("계산 결과를 이 기기에 저장하고 공유 링크로 다시 열 수 있어요.");
+  const [recentSavedCalculations, setRecentSavedCalculations] = useState<SavedMultiMenuState[]>([]);
+  const [isSampleMode, setIsSampleMode] = useState(!testPage);
   const [showFirstVisitHint, setShowFirstVisitHint] = useState(testPage);
   const simulatedRecipeProduct = useMemo(
     () => calculateProductCost({ ...recipeProductInput, salePrice: selectedRecipePrice }),
@@ -169,6 +161,20 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
 
   useEffect(() => {
     const productIds = DEFAULT_RECIPE_PRICING_PRODUCTS.map((product) => product.id);
+    const recentStates = readRecentMultiMenuStates();
+    window.setTimeout(() => setRecentSavedCalculations(recentStates), 0);
+    const sharedMultiState = parseSharedMultiMenuState(window.location.search);
+
+    if (sharedMultiState) {
+      window.setTimeout(() => {
+        setInput(cloneInput(sharedMultiState.input));
+        setIsCalculatorOpen(true);
+        setIsSampleMode(false);
+        setSaveMessage("공유 링크로 저장한 계산을 불러왔어요.");
+      }, 0);
+      return;
+    }
+
     const sharedState = parseCalculatorSearch(window.location.search, productIds);
     const storedState = parseStoredCalculatorState(window.localStorage.getItem(calculatorStorageKey), productIds);
 
@@ -210,32 +216,82 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
   function startOwnInput() {
     setInput(cloneInput(emptyInput));
     setIsCalculatorOpen(true);
+    setIsSampleMode(false);
     setShowFirstVisitHint(true);
     window.setTimeout(() => document.getElementById("monthly-fixed-cost")?.focus(), 80);
   }
 
   async function saveCalculatorState() {
-    const sharePath = buildCalculatorSharePath({ productId: recipeProductId, selectedPrice: selectedRecipePrice });
+    const savedState = buildSavedMultiMenuState(input);
+    const nextStates = [savedState, ...recentSavedCalculations.filter((state) => state.id !== savedState.id)].slice(0, 3);
+    const sharePath = buildMultiMenuSharePath(input);
     const shareUrl = `${window.location.origin}${sharePath}`;
-    window.localStorage.setItem(
-      calculatorStorageKey,
-      JSON.stringify({ productId: recipeProductId, selectedPrice: selectedRecipePrice, savedAt: new Date().toISOString() }),
-    );
+
+    window.localStorage.setItem(multiMenuStorageKey, JSON.stringify(nextStates));
+    setRecentSavedCalculations(nextStates);
     window.history.replaceState(null, "", sharePath);
 
     try {
       await navigator.clipboard?.writeText(shareUrl);
-      setSaveMessage("저장했고 공유 링크도 복사했어요. 다시 열면 같은 계산으로 시작합니다.");
+      setSaveMessage("저장했고 공유 링크도 복사했어요. 이 기기에는 최근 계산 3개까지 남깁니다.");
     } catch {
-      setSaveMessage(`저장했어요. 공유 링크: ${shareUrl}`);
+      setSaveMessage("저장했어요. 주소창의 공유 링크로 다시 열 수 있습니다.");
     }
   }
 
+  function loadSavedCalculatorState(savedState: SavedMultiMenuState) {
+    setInput(cloneInput(savedState.input));
+    setIsCalculatorOpen(true);
+    setIsSampleMode(false);
+    setSaveMessage(`${savedState.name} 계산을 불러왔어요.`);
+  }
+
+  function resetToSampleInput() {
+    setInput(cloneInput(DEFAULT_MULTI_MENU_INPUT));
+    setIsCalculatorOpen(false);
+    setIsSampleMode(true);
+    setShowFirstVisitHint(false);
+    setSaveMessage("샘플 카페 기준으로 다시 표시했어요. 내 매장 값으로 바꾸면 결과가 달라집니다.");
+  }
+
+  function resetCalculatorInput() {
+    setInput(cloneInput(emptyInput));
+    setIsCalculatorOpen(true);
+    setIsSampleMode(false);
+    setSaveMessage("입력값을 비웠어요. 월 운영비와 메뉴 1개부터 다시 넣어보세요.");
+  }
+
+  function downloadCalculatorCsv() {
+    const rows = [
+      ["메뉴명", "판매가", "월 판매량", "한 잔 원가", "한 잔 순이익", "마진율", "월 예상 이익"],
+      ...result.menus.map((menu) => [
+        menu.menuName || "이름 없는 메뉴",
+        String(menu.salePrice),
+        String(menu.expectedMonthlyCups),
+        String(menu.totalCostPerCup),
+        String(menu.profitPerCup),
+        `${menu.marginRate}%`,
+        String(menu.monthlyProfit),
+      ]),
+    ];
+    const csv = rows.map((row) => row.map(escapeCsvCell).join(",")).join("\n");
+    const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `cup-margin-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    setSaveMessage("CSV 파일을 내려받았어요. 저장은 별도 버튼으로 남길 수 있습니다.");
+  }
+
   function updateFixedCost(rawValue: string) {
+    setIsSampleMode(false);
     setInput((current) => ({ ...current, monthlyFixedCost: parseNumberInput(rawValue) }));
   }
 
   function updateMenuField(menuId: string, fieldId: keyof MenuMarginInput, rawValue: string) {
+    setIsSampleMode(false);
     setInput((current) => ({
       ...current,
       menus: current.menus.map((menu) =>
@@ -247,6 +303,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
   }
 
   function addMenu() {
+    setIsSampleMode(false);
     setInput((current) => ({
       ...current,
       menus: [...current.menus, emptyMenu(current.menus.length + 1)],
@@ -254,6 +311,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
   }
 
   function removeMenu(menuId: string) {
+    setIsSampleMode(false);
     setInput((current) => ({
       ...current,
       menus: current.menus.length <= 1 ? current.menus : current.menus.filter((menu) => menu.id !== menuId),
@@ -335,30 +393,30 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
             <div id="top" className="grid items-center gap-12 pb-20 pt-12 lg:grid-cols-[1fr_0.92fr] lg:pb-28 lg:pt-24">
               <div className="max-w-3xl">
                 <div className="inline-flex rounded-md border border-[#c7d3e3] bg-white px-3 py-1.5 text-sm font-semibold text-[#0b2545] shadow-sm">
-                  카페 사장님용 메뉴 손익 기준표
+                  카페 사장님용 메뉴 손익 계산기
                 </div>
                 <h1 className="mt-7 text-[40px] font-medium leading-[1.04] tracking-[-0.052em] text-[#061b31] sm:text-[60px] lg:text-[72px]">
-                  가격 정하기 전,
-                  <span className="block text-[#0b2545]">이 메뉴가 남는지 먼저 봅니다.</span>
+                  아메리카노 3,500원,
+                  <span className="block text-[#0b2545]">한 잔에 진짜 얼마 남나요?</span>
                 </h1>
                 <p className="mt-7 max-w-full text-lg font-normal leading-8 text-[#64748d] sm:max-w-2xl sm:text-xl">
-                  <span className="block">컵마진은 메뉴 가격, 원가, 포장비, 월 비용을 함께 보고</span>
-                  <span className="block">사장님이 가격표를 쓰기 전에 손해 가능성을 줄여주는 계산 서비스입니다.</span>
+                  <span className="block">판매가·원가·월 판매량·월세를 넣으면</span>
+                  <span className="block">한 잔 순이익과 가격 인상 한계를 바로 계산합니다.</span>
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <Link href="/calculator" className="cm-button-primary rounded-lg px-6 py-4 text-center text-base font-bold">
-                    바로 계산해보기
+                    내 메뉴로 30초 계산하기
                   </Link>
                   <a
-                    href="#pricing"
+                    href="#demo"
                     className="cm-button-secondary rounded-lg px-6 py-4 text-center text-base font-bold"
                   >
-                    요금 안내 보기
+                    샘플 결과 먼저 보기
                   </a>
                 </div>
               </div>
 
-              <HeroBenefitPanel />
+              <QuickStartCard />
             </div>
           ) : null}
         </div>
@@ -368,9 +426,18 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
         {testPage ? (
           <div className="mx-auto mb-3 w-full max-w-7xl px-5 sm:px-8 lg:px-10">
             <div className="rounded-2xl border border-[#c7d3e3] bg-white px-4 py-3 shadow-[rgba(11,37,69,0.08)_0px_12px_28px_-18px]">
-              <p className="text-xs font-black text-[#0b2545]">내 카페 계산 시작</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[#061b31]">월 운영비부터 넣으면 메뉴별 손익이 바로 바뀝니다</h1>
-              <p className="mt-1 text-sm leading-6 text-[#64748d]">샘플은 참고용입니다. 내 카페 값은 월 운영비부터 입력하면 바로 결과가 바뀝니다.</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-black text-[#0b2545]">{isSampleMode ? "샘플 카페 기준" : "내 매장 값 계산 중"}</p>
+                  <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[#061b31]">{isSampleMode ? "현재는 샘플 카페 기준입니다. 내 매장 값으로 바꾸면 결과가 달라집니다." : "내 매장 값으로 계산 중입니다. 입력을 바꾸면 결과가 바로 달라집니다."}</h1>
+                  <p className="mt-1 text-sm leading-6 text-[#64748d]">월 운영비, 메뉴명, 판매가, 한 잔 원가, 월 판매량만 바꿔도 결과가 바로 다시 계산됩니다.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button type="button" onClick={startOwnInput} className="cm-button-primary rounded-lg px-4 py-2 text-sm font-bold">내 매장 값 입력하기</button>
+                  <button type="button" onClick={resetToSampleInput} className="cm-button-secondary rounded-lg px-4 py-2 text-sm font-bold">샘플값 유지하기</button>
+                  <button type="button" onClick={resetCalculatorInput} className="rounded-lg px-3 py-2 text-sm font-bold text-[#64748d] hover:bg-[#f3f7fb]">샘플값 초기화</button>
+                </div>
+              </div>
             </div>
           </div>
         ) : null}
@@ -388,11 +455,11 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                 <button type="button" onClick={startOwnInput} className="cm-button-primary w-fit rounded-lg px-4 py-2 text-sm font-bold">
                   + 내 메뉴 입력 시작
                 </button>
-                <button type="button" onClick={() => { setInput(cloneInput(DEFAULT_MULTI_MENU_INPUT)); setIsCalculatorOpen(false); setShowFirstVisitHint(false); }} className="cm-button-secondary w-fit rounded-lg px-4 py-2 text-sm font-bold">
-                  샘플 데이터로 보기
+                <button type="button" onClick={resetToSampleInput} className="cm-button-secondary w-fit rounded-lg px-4 py-2 text-sm font-bold">
+                  샘플값 유지하기
                 </button>
-                <button type="button" onClick={() => { setInput(cloneInput(emptyInput)); setIsCalculatorOpen(true); }} className="w-fit rounded-lg px-3 py-2 text-sm font-bold text-[#64748d] hover:bg-[#f3f7fb]">
-                  전체 초기화
+                <button type="button" onClick={resetCalculatorInput} className="w-fit rounded-lg px-3 py-2 text-sm font-bold text-[#64748d] hover:bg-[#f3f7fb]">
+                  샘플값 초기화
                 </button>
               </div>
             </div>
@@ -501,7 +568,8 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
               risk={priceRisk}
             />
             <MenuBreakdownPanel menus={result.menus} onSelectMenu={setSelectedMenuId} hasCalculatorInput={hasCalculatorInput} />
-            <SaveCalculatorCard onSave={saveCalculatorState} message={saveMessage} variant="desktop" />
+            <SaveCalculatorCard onSave={saveCalculatorState} onExportCsv={downloadCalculatorCsv} message={saveMessage} recentStates={recentSavedCalculations} onLoadState={loadSavedCalculatorState} />
+            <SaveCalculatorCard onSave={saveCalculatorState} onExportCsv={downloadCalculatorCsv} message={saveMessage} variant="desktop" recentStates={recentSavedCalculations} onLoadState={loadSavedCalculatorState} />
           </aside>
         </div>
       </section>
@@ -576,12 +644,12 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                   ))}
                 </ul>
                 <a
-                  href={plan.name === "무료 체험" ? "/calculator" : "#waitlist"}
+                  href={plan.name === "무료" ? "/calculator" : "#waitlist"}
                   className={`mt-7 block rounded-lg px-4 py-3 text-center text-sm font-bold shadow-[rgba(0,0,0,0.12)_0px_14px_28px_-18px] transition ${
                     plan.highlighted ? "bg-[#0b2545] !text-white hover:bg-[#123a63]" : "bg-[#0b2545] !text-white hover:bg-[#123a63]"
                   }`}
                 >
-                  {plan.name === "무료 체험" ? "바로 계산해보기" : `${plan.name} 출시 알림 받기`}
+                  {plan.name === "무료" ? "바로 계산해보기" : `${plan.name} 출시 알림 받기`}
                 </a>
               </div>
             ))}
@@ -597,7 +665,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
             <SectionEyebrow>출시 알림 받기</SectionEyebrow>
             <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31] sm:text-5xl">여러 메뉴 저장 기능이 열리면 가장 먼저 알려드릴게요</h2>
             <p className="mt-4 leading-7 text-[#64748d]">
-              지금 계산한 메뉴와 가격 변경 시나리오를 저장해두고 매달 다시 보고 싶다면 알림을 남겨주세요. 이메일은 현재 화면에서만 확인하는 임시 폼이며, 실제 저장·발송 기능은 다음 단계에서 연결합니다.
+              계산 결과 저장 기능과 월간 리포트가 열리면 알려드립니다. 베타 오픈 소식을 받을 이메일을 남겨주세요.
             </p>
           </div>
           <form onSubmit={submitWaitlist} className="rounded-2xl bg-[#f8fbff] p-4 sm:p-5">
@@ -620,58 +688,44 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
               </button>
             </div>
             <p className="mt-3 text-sm leading-6 text-[#64748d]">
-              {waitlistSubmitted ? "알림 신청 의향을 확인했어요. 실제 저장/발송 기능은 다음 단계에서 연결합니다." : "스팸 없이 컵마진 베이직 오픈 소식만 받는 흐름으로 설계할 예정입니다."}
+              {waitlistSubmitted ? "베타 오픈 소식 알림 신청을 확인했어요." : "계산 결과 저장 기능과 월간 리포트가 열리면 알려드립니다."}
             </p>
           </form>
         </div>
       </section>
       ) : null}
 
-      {!testPage ? (
-      <section className="mx-auto w-full max-w-7xl px-5 pb-24 sm:px-8 lg:px-10">
-        <div className="grid gap-8 rounded-3xl border border-[#e5edf5] bg-white p-6 shadow-[rgba(23,23,23,0.06)_0px_18px_44px_-28px] sm:p-8 lg:grid-cols-[0.78fr_1fr]">
-          <div>
-            <SectionEyebrow>앞으로 추가될 기능</SectionEyebrow>
-            <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31] sm:text-5xl">마진 계산부터 운영 체크까지 하나씩 넓혀갑니다</h2>
-            <p className="mt-4 leading-7 text-[#64748d]">
-              사장님이 실제로 자주 쓰는 기능만 검증해서 발주, 폐기, 리뷰, 알바 체크를 기능팩으로 추가합니다.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {operatingPacks.map((pack) => (
-              <div key={pack} className="rounded-2xl border border-[#e5edf5] bg-[#f8fbff] p-5">
-                <p className="text-lg font-light tracking-[-0.02em] text-[#061b31]">{pack}</p>
-                <p className="mt-2 text-sm leading-6 text-[#64748d]">검증 후 기능팩으로 추가</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-      ) : null}
     </main>
   );
 }
 
-function HeroBenefitPanel() {
+function QuickStartCard() {
   return (
     <div className="cm-card rounded-[28px] p-5 sm:p-6">
-      <p className="text-sm font-black text-[#0b2545]">처음 화면에서 확인할 내용</p>
+      <p className="text-sm font-black text-[#0b2545]">30초 맛보기 입력</p>
       <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31]">
-        계산기는 뒤로 두고, 먼저 판단 기준을 보여줍니다.
+        내 메뉴 하나부터 바로 계산하세요.
       </h2>
-      <div className="mt-6 space-y-3">
-        {heroBenefitCards.map((card) => (
-          <article key={card.title} className="cm-card-muted rounded-2xl p-4">
-            <p className="inline-flex rounded-full border border-[#d7e3f1] bg-white px-2.5 py-1 text-[11px] font-black text-[#0b2545]">{card.eyebrow}</p>
-            <h3 className="mt-3 text-lg font-semibold tracking-[-0.03em] text-[#061b31]">{card.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-[#64748d]">{card.body}</p>
-          </article>
+      <div className="mt-6 grid gap-3">
+        {[
+          ["메뉴명", "아메리카노"],
+          ["판매가", "3,500원"],
+          ["한 잔 원가", "1,200원"],
+          ["월 판매량", "600잔"],
+          ["월 고정비", "1,200,000원"],
+        ].map(([label, value]) => (
+          <div key={label} className="flex items-center justify-between rounded-2xl bg-[#f5f8fb] px-4 py-3">
+            <span className="text-sm font-bold text-[#64748d]">{label}</span>
+            <span className="text-base font-black text-[#061b31]">{value}</span>
+          </div>
         ))}
       </div>
+      <Link href="/calculator" className="cm-button-primary mt-5 inline-flex w-full justify-center rounded-lg px-5 py-3 text-sm font-bold">
+        이 값으로 시작해서 내 메뉴로 바꾸기
+      </Link>
     </div>
   );
 }
-
 function BrandMark() {
   return (
     <span className="relative flex h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-[#0b2545] shadow-[rgba(11,37,69,0.35)_0px_10px_24px_-12px]" aria-hidden="true">
@@ -687,7 +741,7 @@ function LandingTasteSimulation() {
         <div>
           <SectionEyebrow>맛보기 계산</SectionEyebrow>
           <h2 className="mt-3 text-3xl font-medium leading-tight tracking-[-0.04em] text-[#061b31] sm:text-5xl">아메리카노 한 잔만 먼저 보면 이렇습니다.</h2>
-          <p className="mt-4 text-base leading-7 text-[#64748d]">랜딩에서는 판단 기준만 보여주고, 실제 입력과 그래프 조정은 계산기에서 합니다.</p>
+          <p className="mt-4 text-base leading-7 text-[#64748d]">샘플 결과를 먼저 보고, 바로 내 매장 값으로 바꿔 계산할 수 있습니다.</p>
           <Link href="/calculator" className="cm-button-primary mt-6 inline-flex rounded-lg px-5 py-3 text-sm font-bold">지금 내 카페로 계산하기 →</Link>
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
@@ -1041,7 +1095,7 @@ function PriceDecisionCard({ decision }: { decision: PriceDecisionSummary }) {
     <div className="mt-4 cm-card-muted rounded-[28px] p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <div className="text-sm font-black text-[#0b2545]"><TermTooltip term="추천 검토가" description="목표 마진율 60% 기준 역산값입니다. 시장 시세나 손님 반응을 반영한 확정 추천가는 아닙니다." /></div>
+          <div className="text-sm font-black text-[#0b2545]"><TermTooltip term="목표 마진 기준 최소가" description="목표 마진율 60% 기준으로 역산한 최소 참고값입니다. 자동 추천가가 아니라 사장님 판단을 돕는 기준입니다." /></div>
           <p className="mt-1 text-[34px] font-black leading-none tracking-[-0.055em] text-[#061b31]">{formatWon(decision.recommendedReviewPrice)}</p>
         </div>
         <span className={`w-fit rounded-full px-3 py-1.5 text-xs font-black ${isPositive ? "bg-emerald-100 text-emerald-800" : "bg-rose-100 text-rose-800"}`}>
@@ -1051,9 +1105,9 @@ function PriceDecisionCard({ decision }: { decision: PriceDecisionSummary }) {
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
         <SimpleMetric label="현재 월 이익" value={formatWon(decision.currentMonthlyProfit)} />
         <SimpleMetric label="변경 후 월 이익" value={formatWon(decision.projectedMonthlyProfit)} />
-        <SimpleMetric label="줄어도 버틸 판매량" value={decision.breakEvenSalesDropRate === null ? "계산 불가" : `${formatPercent(decision.breakEvenSalesDropRate)} 감소까지`} />
-        <SimpleMetric label="최대 이익점" value={formatWon(decision.bestProfitPrice)} />
-        <SimpleMetric label={<TermTooltip term="손익분기 판매량" description="이 메뉴를 팔아서 월 고정비를 100% 회수하려면 최소 이만큼은 팔아야 한다는 뜻입니다." />} value={decision.breakEvenMonthlyCups === null ? "계산 불가" : `${formatNumber(decision.breakEvenMonthlyCups)}잔`} />
+        <SimpleMetric label="인상 효과가 사라지는 판매량 감소율" value={decision.breakEvenSalesDropRate === null ? "계산 불가" : `${formatPercent(decision.breakEvenSalesDropRate)} 이상`} />
+        <SimpleMetric label="이익 최대 추정가" value={formatWon(decision.bestProfitPrice)} />
+        <SimpleMetric label={<TermTooltip term="손익분기 월 판매량" description="현재 가정에서 최소로 팔아야 하는 잔수입니다. 현재 월 판매량과 따로 비교하세요." />} value={decision.breakEvenMonthlyCups === null ? "계산 불가" : `${formatNumber(decision.breakEvenMonthlyCups)}잔`} />
         <SimpleMetric label={<TermTooltip term="채널 비용" description="배달앱 수수료, 카드 수수료, 포장 용기 값 등 판매가 일어날 때마다 무조건 나가는 비용입니다." />} value={formatWon(decision.selectedNetProfitPerCup)} />
       </div>
       <p className="mt-3 text-xs font-semibold leading-5 text-[#64748d]">
@@ -1063,22 +1117,56 @@ function PriceDecisionCard({ decision }: { decision: PriceDecisionSummary }) {
   );
 }
 
-function SaveCalculatorCard({ onSave, message, variant = "mobile" }: { onSave?: () => void; message?: string; variant?: "mobile" | "desktop" }) {
+function SaveCalculatorCard({
+  onSave,
+  onExportCsv,
+  message,
+  variant = "mobile",
+  recentStates = [],
+  onLoadState,
+}: {
+  onSave?: () => void;
+  onExportCsv?: () => void;
+  message?: string;
+  variant?: "mobile" | "desktop";
+  recentStates?: SavedMultiMenuState[];
+  onLoadState?: (state: SavedMultiMenuState) => void;
+}) {
   return (
     <div className={`${variant === "mobile" ? "mt-4 sm:hidden" : "hidden lg:block"} cm-card-muted rounded-[24px] p-4`}>
-      <p className="text-sm font-semibold text-[#0b2545]">다시 보기</p>
+      <p className="text-sm font-semibold text-[#0b2545]">저장/공유</p>
       <p className="mt-1 text-sm leading-6 text-[#64748d]">{message}</p>
-      <button
-        type="button"
-        onClick={onSave}
-        className="cm-button-primary mt-3 w-full rounded-2xl px-4 py-3 text-sm font-semibold"
-      >
-        계산 결과 저장하기
-      </button>
+      <div className="mt-3 grid gap-2">
+        <button type="button" onClick={onSave} className="cm-button-primary w-full rounded-2xl px-4 py-3 text-sm font-semibold">
+          계산 결과 저장하기
+        </button>
+        {onExportCsv ? (
+          <button type="button" onClick={onExportCsv} className="cm-button-secondary w-full rounded-2xl px-4 py-3 text-sm font-semibold">
+            CSV 다운로드
+          </button>
+        ) : null}
+      </div>
+      {recentStates.length > 0 && onLoadState ? (
+        <div className="mt-4 border-t border-[#d8e3ee] pt-3">
+          <p className="text-xs font-black text-[#64748d]">최근 저장 계산</p>
+          <div className="mt-2 space-y-2">
+            {recentStates.map((state) => (
+              <button
+                key={state.id}
+                type="button"
+                onClick={() => onLoadState(state)}
+                className="w-full rounded-xl bg-white px-3 py-2 text-left text-xs font-bold text-[#273951] ring-1 ring-[#d8e3ee] hover:bg-[#f8fbff]"
+              >
+                <span className="block truncate">{state.name}</span>
+                <span className="mt-0.5 block text-[#64748d]">{formatSavedAt(state.savedAt)}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
-
 function MobileStickyResultBar({
   profit,
   marginRate,
@@ -1144,7 +1232,7 @@ function OwnerDemoCard({
       {decision ? (
         <div className="mt-4 rounded-2xl bg-[#eef5fb] p-4">
           <p className="text-xs font-black text-[#0b2545]">먼저 볼 결론</p>
-          <p className="mt-1 text-xl font-black tracking-[-0.04em] text-[#061b31]">추천 검토가 {formatWon(decision.recommendedReviewPrice)}</p>
+          <p className="mt-1 text-xl font-black tracking-[-0.04em] text-[#061b31]">목표 마진 기준 최소가 {formatWon(decision.recommendedReviewPrice)}</p>
           <p className="mt-1 text-sm font-semibold leading-6 text-[#64748d]">선택가 기준 {decision.summary} · 판매량 {formatNumber(decision.expectedSalesIndex)}% 가정</p>
         </div>
       ) : null}
@@ -1420,8 +1508,8 @@ function PriceSimulationChart({
         <GraphMetric label="목표 마진" value={formatPercent(targetMarginRate)} />
         <GraphMetric label="목표 마진 차이" value={`${marginDelta >= 0 ? "+" : ""}${formatPercent(marginDelta)}`} strong={marginDelta >= 0} />
         <GraphMetric label="판매량 변화" value={`${salesDelta >= 0 ? "+" : ""}${formatNumber(salesDelta)}%p`} />
-        <GraphMetric label="최대 이익점" value={formatWon(decision.bestProfitPrice)} strong />
-        <GraphMetric label={<TermTooltip term="손익분기 판매량" description="이 메뉴를 팔아서 월 고정비를 100% 회수하려면 최소 이만큼은 팔아야 한다는 뜻입니다." />} value={decision.breakEvenMonthlyCups === null ? "계산 불가" : `${formatNumber(decision.breakEvenMonthlyCups)}잔`} />
+        <GraphMetric label="이익 최대 추정가" value={formatWon(decision.bestProfitPrice)} strong />
+        <GraphMetric label={<TermTooltip term="손익분기 월 판매량" description="현재 가정에서 최소로 팔아야 하는 잔수입니다. 현재 월 판매량과 따로 비교하세요." />} value={decision.breakEvenMonthlyCups === null ? "계산 불가" : `${formatNumber(decision.breakEvenMonthlyCups)}잔`} />
       </div>
       <p className="mt-3 text-xs font-semibold leading-5 text-[#64748d]">
         예상 판매량은 현재 판매가를 100으로 둔 참고 지수입니다. 실제 판매량은 상권, 시즌, 고객 반응에 따라 달라집니다.
@@ -1681,18 +1769,26 @@ function PriceRiskPanel({
         ))}
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <Metric label="새 판매가" value={formatWon(risk.newSalePrice)} />
-        <Metric label="가정 판매량" value={`${formatNumber(risk.assumedMonthlyCups)}잔`} />
-        <Metric label="예상 월 이익" value={formatWon(risk.projectedMonthlyProfit)} emphasis />
-        <Metric label="기존 대비" value={`${risk.profitDelta >= 0 ? "+" : ""}${formatWon(risk.profitDelta)}`} emphasis={risk.profitDelta >= 0} />
-      </div>
+      {priceDelta === 0 ? (
+        <div className="mt-5 rounded-2xl border border-[#c7d3e3] bg-white p-4 text-sm font-bold leading-6 text-[#0b2545]">
+          가격 변경 없음. 가격을 조정하면 판매량 감소 허용치를 계산합니다.
+        </div>
+      ) : (
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <Metric label="새 판매가" value={formatWon(risk.newSalePrice)} />
+          <Metric label="가정 판매량" value={`${formatNumber(risk.assumedMonthlyCups)}잔`} />
+          <Metric label="예상 월 이익" value={formatWon(risk.projectedMonthlyProfit)} emphasis />
+          <Metric label="기존 대비" value={`${risk.profitDelta >= 0 ? "+" : ""}${formatWon(risk.profitDelta)}`} emphasis={risk.profitDelta >= 0} />
+        </div>
+      )}
 
       <div className="mt-4 rounded-2xl border border-[#c7d3e3] bg-white p-4">
         <p className="text-sm font-black text-[#061b31]">
-          {risk.allowedDropCups !== null && risk.allowedDropRate !== null
-            ? `판매량이 ${formatNumber(Math.max(0, risk.allowedDropCups))}잔, 약 ${formatPercent(Math.max(0, risk.allowedDropRate))} 이상 줄면 인상 효과가 사라집니다.`
-            : "새 가격에서도 잔당 이익이 남지 않아 가격보다 원가 구조를 먼저 봐야 합니다."}
+          {priceDelta === 0
+            ? "가격 변경 없음"
+            : risk.allowedDropCups !== null && risk.allowedDropRate !== null
+              ? `현재 가정에서는 ${formatWon(priceDelta)} 인상 검토 가능. 판매량이 ${formatNumber(Math.max(0, risk.allowedDropCups))}잔, 약 ${formatPercent(Math.max(0, risk.allowedDropRate))} 이상 줄면 인상 효과가 사라집니다.`
+              : "새 가격에서도 잔당 이익이 남지 않아 가격보다 원가 구조를 먼저 봐야 합니다."}
         </p>
         <p className="mt-2 text-sm leading-6 text-[#64748d]">{risk.summary}</p>
       </div>
@@ -1718,40 +1814,86 @@ function MenuBreakdownPanel({
   onSelectMenu: (menuId: string) => void;
   hasCalculatorInput: boolean;
 }) {
+  const priorityMenus = getPriorityMenus(menus);
+
   return (
     <div className="rounded-[28px] border border-[#e5edf5] bg-white p-4 shadow-[rgba(23,23,23,0.06)_0px_18px_44px_-28px] sm:p-6">
       <h3 className="text-2xl font-light tracking-[-0.03em] text-[#061b31]">메뉴별 손익</h3>
+      {hasCalculatorInput ? (
+        <div className="mt-4 rounded-2xl border border-[#c7d3e3] bg-[#f8fbff] p-4">
+          <p className="text-sm font-black text-[#0b2545]">이번 달 먼저 볼 메뉴 TOP 3</p>
+          <div className="mt-3 space-y-2">
+            {priorityMenus.map((menu, index) => {
+              const health = getMenuHealth(menu.marginRate, menu.profitPerCup);
+              return (
+                <button key={menu.id} type="button" onClick={() => onSelectMenu(menu.id)} className="w-full rounded-xl bg-white px-3 py-2 text-left text-sm font-bold text-[#273951] ring-1 ring-[#d8e3ee] hover:bg-[#eef5fb]">
+                  {index + 1}위 {menu.menuName || "이름 없는 메뉴"} — 남는 비율 {formatPercent(menu.marginRate)}, {health.action}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+      <p className="mt-3 text-xs font-bold leading-5 text-[#64748d]">태그 기준은 기본값입니다. 메뉴군과 매장 상황에 따라 조정할 수 있습니다.</p>
       <div className="mt-4 space-y-3">
         {!hasCalculatorInput ? (
           <div className="rounded-2xl border border-dashed border-[#c7d3e3] bg-[#f8fbff] p-4 text-sm font-semibold leading-6 text-[#64748d]">
             메뉴 정보를 입력하면 잔당 이익과 월 이익이 여기에 표시됩니다.
           </div>
         ) : null}
-        {hasCalculatorInput ? menus.map((menu) => (
-          <div key={menu.id} className="cm-card-muted rounded-2xl p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-bold text-[#061b31]">{menu.menuName || "이름 없는 메뉴"}</p>
-                <p className="mt-1 text-xs text-[#64748d]">{formatNumber(menu.expectedMonthlyCups)}개 · 월 비용 {formatWon(menu.fixedCostShare)} 반영</p>
+        {hasCalculatorInput ? menus.map((menu) => {
+          const health = getMenuHealth(menu.marginRate, menu.profitPerCup);
+          return (
+            <div key={menu.id} className="cm-card-muted rounded-2xl p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="font-bold text-[#061b31]">{menu.menuName || "이름 없는 메뉴"}</p>
+                  <p className="mt-1 text-xs text-[#64748d]">{formatNumber(menu.expectedMonthlyCups)}개 · 월 비용 {formatWon(menu.fixedCostShare)} 반영</p>
+                </div>
+                <span className={`rounded-md px-2 py-1 text-xs font-bold ${health.className}`}>
+                  {health.label}
+                </span>
               </div>
-              <span className={`rounded-md px-2 py-1 text-xs font-bold ${menu.profitPerCup <= 0 ? "bg-rose-100 text-rose-700" : menu.marginRate < 20 ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"}`}>
-                {menu.profitPerCup <= 0 ? "손실" : menu.marginRate < 20 ? "마진율 주의" : "양호"}
-              </span>
+              <p className="mt-3 text-2xl font-light tracking-[-0.03em] text-[#061b31]">{formatWon(menu.profitPerCup)} / 잔</p>
+              <p className="text-sm leading-6 text-[#64748d]">월 {formatWon(menu.monthlyProfit)} · 남는 비율 {formatPercent(menu.marginRate)} · {health.description}</p>
+              <button
+                type="button"
+                onClick={() => onSelectMenu(menu.id)}
+                className="mt-3 w-full rounded-xl border border-[#c7d3e3] bg-white px-3 py-2 text-sm font-black text-[#0b2545] transition hover:-translate-y-0.5 hover:bg-[#f3f7fb]"
+              >
+                이 메뉴 가격 바꿔보기
+              </button>
             </div>
-            <p className="mt-3 text-2xl font-light tracking-[-0.03em] text-[#061b31]">{formatWon(menu.profitPerCup)} / 잔</p>
-            <p className="text-sm leading-6 text-[#64748d]">월 {formatWon(menu.monthlyProfit)} · 남는 비율 {formatPercent(menu.marginRate)} · 가격을 바꾸면 판매량도 함께 보세요</p>
-            <button
-              type="button"
-              onClick={() => onSelectMenu(menu.id)}
-              className="mt-3 w-full rounded-xl border border-[#c7d3e3] bg-white px-3 py-2 text-sm font-black text-[#0b2545] transition hover:-translate-y-0.5 hover:bg-[#f3f7fb]"
-            >
-              이 메뉴 가격 바꿔보기
-            </button>
-          </div>
-        )) : null}
+          );
+        }) : null}
       </div>
     </div>
   );
+}
+function getMenuHealth(marginRate: number, profitPerCup: number) {
+  if (profitPerCup <= 0 || marginRate < 40) {
+    return { label: "위험", action: "가격·원가 우선 점검", description: "손실 위험이 큽니다. 판매가, 원가, 폐기율부터 다시 보세요.", className: "bg-rose-100 text-rose-700" };
+  }
+  if (marginRate < 45) {
+    return { label: "가격 조정 후보", action: "가격 조정 후보", description: "많이 남는 편은 아니므로 원가나 판매가를 다시 보는 것이 좋습니다.", className: "bg-orange-100 text-orange-800" };
+  }
+  if (marginRate < 50) {
+    return { label: "원가 점검", action: "원가 점검 필요", description: "원가와 포장비가 오른 메뉴인지 먼저 확인하세요.", className: "bg-amber-100 text-amber-800" };
+  }
+  if (marginRate < 60) {
+    return { label: "유지 가능", action: "유지 가능", description: "현재 구조는 유지 가능하지만 원가 변동 때 다시 확인하세요.", className: "bg-sky-100 text-sky-800" };
+  }
+  return { label: "양호", action: "양호", description: "현재 입력값 기준으로 여유가 있는 편입니다.", className: "bg-emerald-100 text-emerald-800" };
+}
+
+function getPriorityMenus(menus: MenuMarginResult[]) {
+  return [...menus]
+    .sort((a, b) => {
+      const aScore = Math.max(0, 65 - a.marginRate) * Math.log10(Math.max(10, a.expectedMonthlyCups)) + Math.max(0, 20000 - a.monthlyProfit) / 10000;
+      const bScore = Math.max(0, 65 - b.marginRate) * Math.log10(Math.max(10, b.expectedMonthlyCups)) + Math.max(0, 20000 - b.monthlyProfit) / 10000;
+      return bScore - aScore;
+    })
+    .slice(0, 3);
 }
 
 function Metric({ label, value, emphasis = false, dark = false }: { label: ReactNode; value: string; emphasis?: boolean; dark?: boolean }) {
@@ -1829,6 +1971,81 @@ function getPortfolioVerdict(result: MultiMenuMarginResult): PortfolioVerdict {
     description: "메뉴별 월 이익을 비교해 많이 남는 메뉴는 더 밀고, 마진이 얇은 메뉴는 가격이나 레시피를 조정해볼 수 있습니다.",
     className: "border-emerald-200 bg-emerald-50 text-emerald-900",
   };
+}
+
+function buildSavedMultiMenuState(input: MultiMenuMarginInput): SavedMultiMenuState {
+  const primaryMenuName = input.menus.find((menu) => menu.menuName.trim())?.menuName.trim() || "내 메뉴";
+  const now = new Date().toISOString();
+
+  return {
+    id: `${Date.now()}`,
+    name: `${primaryMenuName} 외 ${Math.max(0, input.menus.length - 1)}개`,
+    input: cloneInput(input),
+    savedAt: now,
+  };
+}
+
+function readRecentMultiMenuStates(): SavedMultiMenuState[] {
+  const rawValue = window.localStorage.getItem(multiMenuStorageKey);
+  if (!rawValue) return [];
+
+  try {
+    const parsed = JSON.parse(rawValue) as SavedMultiMenuState[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(isSavedMultiMenuState).slice(0, 3);
+  } catch {
+    return [];
+  }
+}
+
+function isSavedMultiMenuState(value: SavedMultiMenuState | null | undefined): value is SavedMultiMenuState {
+  return Boolean(value?.id && value.name && value.savedAt && value.input && Array.isArray(value.input.menus));
+}
+
+function buildMultiMenuSharePath(input: MultiMenuMarginInput) {
+  const encoded = encodeState(input);
+  return `/calculator?state=${encoded}`;
+}
+
+function parseSharedMultiMenuState(search: string): SavedMultiMenuState | null {
+  const params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const encoded = params.get("state");
+  if (!encoded) return null;
+
+  try {
+    const parsed = JSON.parse(decodeState(encoded)) as MultiMenuMarginInput;
+    if (!Array.isArray(parsed.menus)) return null;
+    return {
+      id: "shared",
+      name: "공유 계산",
+      input: {
+        monthlyFixedCost: Number(parsed.monthlyFixedCost) || 0,
+        menus: parsed.menus.map((menu, index) => ({ ...emptyMenu(index + 1), ...menu, id: String(menu.id || `shared-${index + 1}`) })),
+      },
+      savedAt: new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function encodeState(input: MultiMenuMarginInput) {
+  return btoa(encodeURIComponent(JSON.stringify(input))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function decodeState(encoded: string) {
+  const padded = encoded.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((encoded.length + 3) % 4);
+  return decodeURIComponent(atob(padded));
+}
+
+function escapeCsvCell(value: string) {
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function formatSavedAt(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "저장 시간 확인 불가";
+  return `${date.getMonth() + 1}/${date.getDate()} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
 function hasMeaningfulMenuInput(menu: MenuMarginInput) {
