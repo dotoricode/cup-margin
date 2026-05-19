@@ -1,0 +1,753 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hermes 통합 작업 프롬프트 — 컵마진 UX 검수 2건 통합</title>
+<style>
+  :root {
+    --fg: #1a1f2e;
+    --muted: #5a6177;
+    --line: #e3e6ee;
+    --bg: #fafbfd;
+    --card: #ffffff;
+    --accent: #2f6df3;
+    --warn: #b91c1c;
+    --ok: #1b8a4d;
+    --amber: #b45309;
+    --chip: #eef2ff;
+    --code-bg: #f3f5fa;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    line-height: 1.68;
+    font-size: 15.5px;
+  }
+  main { max-width: 960px; margin: 0 auto; padding: 32px 22px 88px; }
+  header.doc {
+    border-bottom: 2px solid var(--fg);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+  header.doc h1 {
+    font-size: 27px;
+    margin: 0 0 8px;
+    letter-spacing: -0.012em;
+  }
+  header.doc .lead {
+    color: var(--muted);
+    font-size: 14px;
+    margin: 6px 0 0;
+  }
+  .chips { margin-top: 10px; }
+  .chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--chip);
+    color: var(--accent);
+    font-size: 12px;
+    margin: 2px 4px 2px 0;
+    font-weight: 500;
+  }
+  .chip.warn { background: #fee2e2; color: var(--warn); }
+  .chip.ok { background: #dcfce7; color: var(--ok); }
+  h2 {
+    font-size: 22px;
+    margin: 48px 0 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    letter-spacing: -0.01em;
+  }
+  h2 .num {
+    color: var(--accent);
+    font-weight: 800;
+    margin-right: 8px;
+  }
+  h3 { font-size: 17px; margin: 26px 0 10px; }
+  h4 {
+    font-size: 13px;
+    margin: 16px 0 6px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  p, li { font-size: 15px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 22px;
+    font-size: 14px;
+    background: var(--card);
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 9px 11px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f3f5fa; font-weight: 600; }
+  td.center, th.center { text-align: center; }
+  .warn { color: var(--warn); font-weight: 600; }
+  .ok { color: var(--ok); font-weight: 600; }
+  .amber { color: var(--amber); font-weight: 600; }
+  code {
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: "SF Mono", Monaco, Consolas, monospace;
+    font-size: 13px;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 12px 14px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.55;
+    margin: 12px 0;
+  }
+  pre code { background: transparent; padding: 0; }
+  blockquote {
+    margin: 14px 0;
+    padding: 10px 16px;
+    border-left: 3px solid var(--accent);
+    background: var(--card);
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--line);
+    padding: 14px 20px;
+    border-radius: 6px;
+    margin-bottom: 28px;
+  }
+  .toc ol { margin: 8px 0 0 16px; padding: 0; }
+  .toc li { font-size: 14px; margin: 3px 0; }
+  .backlog {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .backlog.p0 { border-left-color: var(--warn); }
+  .backlog.p1 { border-left-color: var(--amber); }
+  .backlog.p2 { border-left-color: var(--accent); }
+  .backlog .id {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--fg);
+    margin-bottom: 6px;
+  }
+  .backlog .meta {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+  .backlog .row {
+    margin: 6px 0;
+  }
+  .backlog .label {
+    display: inline-block;
+    min-width: 76px;
+    color: var(--muted);
+    font-size: 12px;
+    vertical-align: top;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .callout {
+    background: #fff8e6;
+    border: 1px solid #fde68a;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 14px 0;
+    font-size: 14px;
+  }
+  .callout.danger {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #991b1b;
+  }
+  .callout.ok {
+    background: #ecfdf5;
+    border-color: #bbf7d0;
+    color: #065f46;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  small { color: var(--muted); }
+  ul, ol { padding-left: 22px; }
+  li { margin: 4px 0; }
+  .agree-mark {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-right: 6px;
+  }
+  .agree-mark.both { background: #dcfce7; color: var(--ok); }
+  .agree-mark.a { background: #fef3c7; color: var(--amber); }
+  .agree-mark.b { background: #dbeafe; color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+
+<header class="doc">
+  <h1>Hermes 통합 작업 프롬프트 — 컵마진 UX 검수 2건 통합 실행</h1>
+  <p class="lead">
+    입력 검수: <code>reports/cup-margin-audit/</code> (Playwright + Pa11y + axe + Lighthouse + 스크린샷) ·
+    <code>reports/claude-code-review/</code> (Lighthouse 5회 + axe-core 4.11 + 벤치 6) ·
+    작성: 2026-05-19
+  </p>
+  <div class="chips">
+    <span class="chip">Next.js 16 App Router</span>
+    <span class="chip">React 19</span>
+    <span class="chip">TypeScript</span>
+    <span class="chip">Tailwind v4</span>
+    <span class="chip">Vitest</span>
+    <span class="chip warn">P0 4건</span>
+    <span class="chip">P1 7건</span>
+    <span class="chip">P2 3건</span>
+  </div>
+</header>
+
+<div class="toc">
+  <strong>목차</strong>
+  <ol>
+    <li><a href="#s1">역할과 제약</a></li>
+    <li><a href="#s2">입력 자료</a></li>
+    <li><a href="#s3">두 검수의 합의·차이 매트릭스</a></li>
+    <li><a href="#s4">통합 베이스라인 (회귀 가드)</a></li>
+    <li><a href="#s5">작업 원칙</a></li>
+    <li><a href="#s6">통합 백로그 (P0/P1/P2)</a></li>
+    <li><a href="#s7">Phase 실행 순서</a></li>
+    <li><a href="#s8">P0-14 (LCP 회복) 세부 절차</a></li>
+    <li><a href="#s9">카피 변경 규칙</a></li>
+    <li><a href="#s10">검증·CI</a></li>
+    <li><a href="#s11">보고 형식</a></li>
+    <li><a href="#s12">절대 하지 말 것</a></li>
+    <li><a href="#s13">시작 신호</a></li>
+  </ol>
+</div>
+
+<!-- ========================================== -->
+<h2 id="s1"><span class="num">1.</span>역할과 제약</h2>
+
+<p>당신은 <code>/Users/youngsang.kwon/01_private/cup-margin</code> 저장소의 시니어 풀스택 엔지니어입니다. 두 개의 독립 UX 검수(이하 <strong>Audit A</strong>·<strong>Audit B</strong>)가 같은 사이트를 같은 페르소나·루브릭으로 채점한 결과를 받았고, 두 검수가 합의한 사항·각자 단독 발견한 사항을 모두 코드 변경·카피 변경·CI 워크플로 변경으로 실현합니다.</p>
+
+<ul>
+  <li><strong>도메인 우선.</strong> 코드 변경 전 <code>AGENTS.md</code>와 <code>node_modules/next/dist/docs/</code>의 해당 가이드를 먼저 확인. 이 프로젝트의 Next.js 16은 일반 버전과 다릅니다.</li>
+  <li><strong>페르소나 우선순위.</strong> P1 박지영(영세 카페 사장님, 47세, 모바일, 매장 카운터, 한 손) > P2 김민호(1~3매장 점주). P0는 P1 정조준.</li>
+  <li><strong>베타 단계 보존.</strong> 가입·카드 등록 없이 샘플부터 보는 흐름은 두 검수가 모두 강점으로 분류. 절대 회귀 금지.</li>
+</ul>
+
+<!-- ========================================== -->
+<h2 id="s2"><span class="num">2.</span>입력 자료</h2>
+
+<table>
+  <tr><th>경로</th><th>내용</th><th>활용</th></tr>
+  <tr>
+    <td><code>reports/cup-margin-audit/index.html</code></td>
+    <td>Audit A 본문 (총점 18/30). 5단계 P1 워크스루 + 5개 벤치(Cashnote, Finda, Shopify, Square, BLS)</td>
+    <td>P0-1(9개 샘플 sprawl) 1차 근거, R3 input 24px 측정값</td>
+  </tr>
+  <tr>
+    <td><code>reports/cup-margin-audit/assets/</code></td>
+    <td>Playwright 스크린샷 22장 (m360/m414/d1440 × 6사이트)</td>
+    <td>UI 회귀 검증 baseline (특히 cup-calculator-m414.png)</td>
+  </tr>
+  <tr>
+    <td><code>reports/cup-margin-audit/raw/</code></td>
+    <td>Lighthouse 4건, Pa11y 2건, axe 1건, capture 1건</td>
+    <td>Pa11y 위반 17건 셀렉터 출처</td>
+  </tr>
+  <tr>
+    <td><code>reports/claude-code-review/cup-margin-ux-audit.html</code></td>
+    <td>Audit B 본문 v2 (총점 21.5/30). 백로그 12건 + 카피 4 화면 + 갱신된 P0 우선순위</td>
+    <td>구체 카피 변경안, P0 재배치 근거, 베이스라인 임계치</td>
+  </tr>
+  <tr>
+    <td><code>reports/claude-code-review/measurements/</code></td>
+    <td>Lighthouse JSON 5건(mobile/desktop × landing/calc + warm), axe-core JSON 2건</td>
+    <td>P0-04 CI 임계치 데이터, P0-14 회복 측정 기준</td>
+  </tr>
+  <tr>
+    <td><code>src/features/cup-margin/</code></td>
+    <td>도메인·UI 소스 (Vertical Slice)</td>
+    <td>주 컴포넌트 후보 <code>ui/CupMarginLanding.tsx</code>, 계산 모델 <code>model/calculateMultiMenuMargin.ts</code>, 카피 <code>model/copy.ts</code></td>
+  </tr>
+</table>
+
+<!-- ========================================== -->
+<h2 id="s3"><span class="num">3.</span>두 검수의 합의·차이 매트릭스</h2>
+
+<table>
+  <tr>
+    <th>축</th>
+    <th class="center">Audit A 점수</th>
+    <th class="center">Audit B 점수</th>
+    <th>해석</th>
+  </tr>
+  <tr><td>R1 명료성</td><td class="center">4</td><td class="center">4</td><td><span class="ok">합의</span> — 헤드라인 강점, 유지</td></tr>
+  <tr><td>R2 진입 부담</td><td class="center">3</td><td class="center">5</td><td><span class="amber">차이</span> — A는 9개 샘플 sprawl 감점, B는 베타 신청 단순함을 5점. <strong>A가 옳음 (실제 화면 sprawl이 더 큰 문제)</strong>, B의 5점은 WebFetch가 UI 구조를 못 봐서 발생한 과대평가. → 실제 점수는 3.5로 보정.</td></tr>
+  <tr><td>R3 작업 효율</td><td class="center warn">2</td><td class="center">4</td><td><span class="warn">큰 차이</span> — A는 input 24px·전체 스크롤 측정 후 2점, B는 카피 점진 공개 보고 4점. <strong>A의 측정값을 신뢰</strong>, 실제는 2.5점 수준.</td></tr>
+  <tr><td>R4 결과 해석</td><td class="center">4</td><td class="center">3.5</td><td><span class="ok">합의</span> — 강점이지만 의사결정 카피 추가 여지</td></tr>
+  <tr><td>R5 신뢰</td><td class="center">3</td><td class="center">3</td><td><span class="ok">합의</span> — 데이터 처리 명시 + 사회적 증거 부재 동시 지적</td></tr>
+  <tr><td>R6 접근성·성능</td><td class="center warn">2</td><td class="center warn">2</td><td><span class="ok">합의 (최대 갭)</span> — 모바일 LCP 12~13초, 색대비 위반 다수</td></tr>
+</table>
+
+<div class="callout">
+  <strong>판정.</strong> 충돌하는 R2·R3는 Audit A의 실측을 신뢰합니다(Playwright로 실제 DOM·치수 측정). 통합 R2=3.5, R3=2.5로 본 프롬프트 작업 결정.
+</div>
+
+<!-- ========================================== -->
+<h2 id="s4"><span class="num">4.</span>통합 베이스라인 (회귀 가드)</h2>
+
+<h4>Lighthouse (4종 매트릭스, 2026-05-19 실측 합치)</h4>
+<table>
+  <tr>
+    <th>케이스</th>
+    <th class="center">Audit A Perf</th>
+    <th class="center">Audit B Perf</th>
+    <th class="center">합치 LCP</th>
+    <th class="center">합치 FCP</th>
+    <th class="center">TBT</th>
+    <th class="center">a11y</th>
+  </tr>
+  <tr><td>모바일 · 랜딩</td><td class="center">29</td><td class="center">50</td><td class="center warn">12~13s</td><td class="center warn">11.1s</td><td class="center">~270ms</td><td class="center">96</td></tr>
+  <tr><td>모바일 · 계산기</td><td class="center">45</td><td class="center warn">27</td><td class="center warn">12.2~12.7s</td><td class="center">11.1s</td><td class="center warn">~1,600~2,517ms</td><td class="center">96</td></tr>
+  <tr><td>데스크탑 · 랜딩</td><td class="center">—</td><td class="center ok">75</td><td class="center">1.8s</td><td class="center">1.0s</td><td class="center">241ms</td><td class="center">96</td></tr>
+  <tr><td>데스크탑 · 계산기</td><td class="center">—</td><td class="center warn">30</td><td class="center warn">12.0s</td><td class="center warn">11.1s</td><td class="center">669ms</td><td class="center">96</td></tr>
+</table>
+
+<h4>접근성 위반 합치</h4>
+<table>
+  <tr><th>도구</th><th>대상</th><th class="center">위반</th><th>패턴</th></tr>
+  <tr><td>Pa11y (Audit A)</td><td>랜딩</td><td class="center warn">13</td><td>대비 부족 색상</td></tr>
+  <tr><td>Pa11y (Audit A)</td><td>계산기</td><td class="center">4</td><td>대비 부족 색상</td></tr>
+  <tr><td>axe-core (Audit B)</td><td>랜딩</td><td class="center">6</td><td><code>color-contrast</code> — <code>text-[#64748d]</code> on <code>bg-[#f0f0ff]</code>/<code>bg-[#f5f8fb]</code></td></tr>
+  <tr><td>axe-core (Audit B)</td><td>계산기</td><td class="center">3</td><td><code>color-contrast</code> ×2 + <code>landmark-complementary-is-top-level</code> ×1</td></tr>
+  <tr><td colspan="2"><strong>고유 위반 합치 (중복 제거 추정)</strong></td><td class="center warn">~20</td><td>70% 이상이 회색 토큰 한 패턴 — 단일 교체로 일괄 회복 가능</td></tr>
+</table>
+
+<h4>Web Core Vitals 목표 (Phase 2 임계치)</h4>
+<table>
+  <tr><th class="center">LCP</th><th class="center">INP</th><th class="center">CLS</th><th class="center">FCP</th><th class="center">TBT</th></tr>
+  <tr>
+    <td class="center"><strong>&lt; 2.5s</strong></td>
+    <td class="center"><strong>&lt; 200ms</strong></td>
+    <td class="center"><strong>&lt; 0.1</strong></td>
+    <td class="center"><strong>&lt; 1.5s</strong></td>
+    <td class="center"><strong>&lt; 200ms</strong></td>
+  </tr>
+</table>
+
+<h4>번들 예산</h4>
+<table>
+  <tr><th>페이지</th><th class="center">JS (gzipped)</th><th class="center">CSS</th></tr>
+  <tr><td>랜딩</td><td class="center">&lt; 150kb</td><td class="center">&lt; 30kb</td></tr>
+  <tr><td>계산기 (App)</td><td class="center">&lt; 300kb</td><td class="center">&lt; 50kb</td></tr>
+</table>
+
+<h4>임계치 단계</h4>
+<ul>
+  <li><strong>Phase 1 (회복 진행 중):</strong> 위 베이스라인 ±5점/+1초 이내 → 회귀 금지 (현 상태 유지).</li>
+  <li><strong>Phase 2 (P0-14 완료 후 재설정):</strong> mobile Perf≥80, LCP≤2.5s, INP≤200ms, FCP≤1.5s, TBT≤200ms, axe-core 위반 0, Pa11y 위반 0.</li>
+  <li><strong>항상 만점 유지(회귀 시 즉시 fail):</strong> CLS≤0.1, Best Practices=100, SEO=100.</li>
+</ul>
+
+<!-- ========================================== -->
+<h2 id="s5"><span class="num">5.</span>작업 원칙</h2>
+
+<ol>
+  <li><strong>백로그 ID = PR 단위.</strong> P0는 각각 별도 PR. P1·P2는 코드 영역이 같으면 묶기 가능.</li>
+  <li><strong>카피는 <code>model/copy.ts</code>에 상수로.</strong> 컴포넌트 인라인 하드코딩 금지.</li>
+  <li><strong>색상은 디자인 토큰으로.</strong> <code>text-[#64748d]</code> 같은 Tailwind 임의값 금지. CSS 변수 또는 tailwind config에 <code>text-muted</code>, <code>bg-soft</code> 등 의미 토큰으로 추출.</li>
+  <li><strong>TDD.</strong> 도메인 로직(마진 구간별 등급, 입력 신뢰도 계산, 의사결정 카피 매핑)은 Vitest로 RED→GREEN→REFACTOR.</li>
+  <li><strong>불변 패턴.</strong> 기존 객체 변형 금지, 새 객체 반환.</li>
+  <li><strong>사장님 언어로만 카피 작성.</strong> 토스의 "이해하기 쉬운 용어" 원칙. 영어 SaaS 직역 금지.</li>
+  <li><strong>의미 시맨틱.</strong> <code>div</code> 더미 대신 <code>main</code>/<code>section</code>/<code>aside</code>/<code>nav</code>. axe-core <code>landmark-complementary-is-top-level</code> 위반은 이 원칙에서 발생.</li>
+  <li><strong>성능 우선 로딩.</strong> 차트·CSV·공유 모달은 <code>next/dynamic</code>. 폰트는 <code>next/font</code>로 자체 호스팅, 핵심 1종만 preload.</li>
+  <li><strong>R1·R4 강점은 절대 건드리지 말 것.</strong> 두 검수가 합의한 "유지" 항목.</li>
+  <li><strong>데이터 처리 약속 보존.</strong> <em>"계산 결과는 이 기기에만 저장됩니다"</em>는 P1 신뢰의 핵심. 백엔드 API 도입 시도 동의 없이 매장 데이터 서버 전송 금지.</li>
+</ol>
+
+<!-- ========================================== -->
+<h2 id="s6"><span class="num">6.</span>통합 백로그</h2>
+
+<p>총 14개 항목 (P0 4 / P1 7 / P2 3). 모든 항목에 출처 표기:
+<span class="agree-mark both">합의</span> 두 검수 공통 발견 ·
+<span class="agree-mark a">A</span> Audit A 단독 발견 ·
+<span class="agree-mark b">B</span> Audit B 단독 발견.</p>
+
+<h3>P0 — 4건 (R6 회복 + 첫 진입 정상화가 핵심)</h3>
+
+<div class="backlog p0">
+  <div class="id">[P0-04] LHCI + axe-core + Pa11y CI 통합, 베이스라인 임계치 박음 <span class="agree-mark b">B</span></div>
+  <div class="meta">노력도 M · P1 · R6 회귀 방지 · <strong>1순위 (다른 P0의 가드레일)</strong></div>
+  <div class="row"><span class="label">문제</span> 두 검수가 별도 환경에서 측정한 베이스라인을 회귀 가드로 박지 않으면, 회복 PR이 다른 곳에 회귀를 만들어도 못 잡음.</div>
+  <div class="row"><span class="label">권고</span> GitHub Actions에 LHCI 4종 매트릭스(mobile/desktop × landing/calc) + axe-playwright + Pa11y 추가.</div>
+  <div class="row"><span class="label">변경안</span>
+    <ul>
+      <li><code>.github/workflows/lhci.yml</code>, <code>lighthouserc.json</code></li>
+      <li><strong>베이스라인:</strong> 통합 베이스라인 표 (단계 4) 그대로 입력</li>
+      <li>Phase 1 임계치: 베이스라인 ±5점/+1초. Phase 2 임계치: CWV 표 (단계 4)</li>
+      <li><code>npm run lhci</code>, <code>npm run a11y</code> 로컬 명령 추가</li>
+      <li>첫 실행은 PR 코멘트에 기록만, 다음 PR부터 회귀 시 fail</li>
+    </ul>
+  </div>
+  <div class="row"><span class="label">측정</span> 4종 케이스 통과, axe-core·Pa11y 위반 회귀 0건.</div>
+</div>
+
+<div class="backlog p0">
+  <div class="id">[P0-01] 계산기 첫 진입을 "한 메뉴 직접 입력" 흐름으로 축소 <span class="agree-mark a">A</span></div>
+  <div class="meta">노력도 M · P1 · R3·R2 동시 회복 · <strong>2순위 (사용자 화면을 정상화)</strong></div>
+  <div class="row"><span class="label">문제</span> Audit A 스크린샷 <code>cup-calculator-m414.png</code>에서 9개 샘플 메뉴가 길게 펼쳐져, P1이 "관리 화면"으로 인식하고 "내 메뉴 하나만 바꿔보자" 진입이 막힘. 첫 결과 도달까지 입력 수가 많음.</div>
+  <div class="row"><span class="label">권고</span> 기본은 한 메뉴 직접 입력, 9개 샘플은 명시적 보조 버튼 뒤로.</div>
+  <div class="row"><span class="label">변경안</span>
+    <ul>
+      <li>계산기 진입 시 메뉴 1개만 노출 + 입력 폼은 필수 3개(판매가·원재료비·월 판매량)만</li>
+      <li>버튼 3개: <em>"내 메뉴 하나 입력"</em>(기본 강조), <em>"샘플 9개 보기"</em>(보조), <em>"입력 비우기"</em>(보조)</li>
+      <li>상단 안내 카피: <em>"📍 처음엔 메뉴 하나만 바꾸세요. 모르는 항목은 0원으로 시작해도 됩니다."</em></li>
+      <li><code>src/features/cup-margin/ui/calculator/</code> 트리에서 메뉴 리스트 컴포넌트의 기본 길이 1로</li>
+    </ul>
+  </div>
+  <div class="row"><span class="label">측정</span> 첫 결과 도달 입력 수 ≤5, 모바일 첫 화면 이탈률 −30%.</div>
+</div>
+
+<div class="backlog p0">
+  <div class="id">[P0-13] 색대비 위반 ~20건 일괄 해소 (회색 토큰 통일) <span class="agree-mark both">합의</span></div>
+  <div class="meta">노력도 S · P1 · R6 a11y 회복 · <strong>3순위 (빠른 회복, 다른 카피 작업의 색 토큰 선결)</strong></div>
+  <div class="row"><span class="label">문제</span> Pa11y 17건 + axe-core 9건 위반. 공통 패턴은 <code>text-[#64748d]</code> on <code>bg-[#f0f0ff]</code>/<code>bg-[#f5f8fb]</code>. P1(시력 1.0 미만, 매장 자연광 반사)에서 안 보임.</div>
+  <div class="row"><span class="label">권고</span> Tailwind 임의값을 디자인 토큰으로 추출, WCAG AA(대비 4.5:1) 통과 색상으로 단일 교체.</div>
+  <div class="row"><span class="label">변경안</span>
+    <ul>
+      <li>CSS 변수 추가: <code>--color-muted: #475569;</code> (slate-600, AA 통과), <code>--color-surface-soft: #eef2ff;</code></li>
+      <li>Tailwind v4 config에 <code>text-muted</code>, <code>bg-soft</code> 토큰 등록</li>
+      <li>랜딩 가격표 5건 + 3컬럼 카드 라벨 + 계산기 결과 보조 라벨 동시 교체</li>
+      <li>계산기 <code>aside</code> top-level 위반 1건도 함께 처리: <code>main</code> 직계로 끌어내거나 적절한 <code>role</code> 재할당</li>
+      <li>axe-core·Pa11y 베이스라인을 0건으로 갱신</li>
+    </ul>
+  </div>
+  <div class="row"><span class="label">측정</span> axe-core 9→0, Pa11y 17→0. P0-04 CI에서 검증.</div>
+</div>
+
+<div class="backlog p0">
+  <div class="id">[P0-14] 모바일 LCP 12s → ≤2.5s (RSC 전환 + 코드 스플리팅 + 폰트) <span class="agree-mark both">합의</span></div>
+  <div class="meta">노력도 L · P1·P2 · R6 핵심 갭 정조준 · <strong>4순위 (큰 회복, 3주 phase 작업)</strong></div>
+  <div class="row"><span class="label">문제</span> 두 검수 모두 모바일 LCP 12s+ 측정. server-response-time 9ms로 서버는 정상이며 <strong>클라이언트 JS bootup 2.9s + 메인 스레드 6.5s</strong>가 병목. 데스크탑 계산기도 LCP 12s — 모바일 throttling 문제 아닌 페이지 자체 JS heavy.</div>
+  <div class="row"><span class="label">권고</span> 세 갈래 phase로 진행.</div>
+  <div class="row"><span class="label">변경안</span>
+    <ul>
+      <li><strong>Phase A (1주차):</strong> <code>"use client"</code> 경계를 입력 폼·결과 패널 단위로 좁힘. 페이지·레이아웃은 RSC. <code>grep -rln '"use client"' src/features/cup-margin/ui/calculator/</code>로 현 분포 점검.</li>
+      <li><strong>Phase B (2주차):</strong> CSV·공유 모달·차트는 <code>next/dynamic({ ssr: false })</code> 지연 로드. 사용자 클릭 후만 로드.</li>
+      <li><strong>Phase C (3주차):</strong> <code>next/font/local</code> 또는 <code>next/font/google</code>로 자체 호스팅. 핵심 1종만 preload, <code>font-display: swap</code>.</li>
+      <li>이미지는 명시 <code>width</code>/<code>height</code> + hero만 <code>fetchpriority="high"</code>, 나머지 <code>loading="lazy"</code>.</li>
+      <li>각 Phase 후 P0-04 CI 측정 갱신, PR 본문에 표로 기록.</li>
+    </ul>
+  </div>
+  <div class="row"><span class="label">측정</span> mobile-calc Perf 27→≥80, LCP 12.7s→≤2.5s, JS bootup 2.9s→≤1.0s, TBT 2,517ms→≤200ms.</div>
+</div>
+
+<h3>P1 — 7건 (R6 회복 후)</h3>
+
+<div class="backlog p1">
+  <div class="id">[P1-03] 결과 패널 첫 줄을 의사결정 문장으로 <span class="agree-mark both">합의</span></div>
+  <div class="meta">노력도 S · P1·P2 · R4 갭 해소</div>
+  <div class="row"><span class="label">문제</span> "양호" 한 단어로 끝나 다음 행동이 묻힘.</div>
+  <div class="row"><span class="label">변경안</span>
+    <pre><code>// model/copy.ts
+export const RESULT_VERDICT = {
+  risky:    "위험 — 가격을 500원 올려보거나 원가를 먼저 점검하세요",
+  ok:       "보통 — 동종 평균 수준입니다",
+  good:     "양호 — 카페 평균 55%대 대비 상위권, 가격 인상 여력이 있어요",
+  superior: "우수 — 신메뉴 도입 시 이 마진을 기준선으로 활용하세요",
+} as const;</code></pre>
+    마진 구간: &lt;30% risky / 30~55% ok / 55~70% good / 70%+ superior. 구간 매핑은 Vitest로 단위 테스트.
+  </div>
+  <div class="row"><span class="label">측정</span> 결과→가격 시뮬레이션 CTA 전환 +20%.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-05] 입력 전문어 카피 + 기본값 (폐기율·잔당 인건비) <span class="agree-mark b">B</span></div>
+  <div class="meta">노력도 S · P1 · R3 보강</div>
+  <div class="row"><span class="label">변경안</span> <em>"폐기·실패 예상 비율"</em> → <em>"버리는 비율 (모르면 5%로 두세요)"</em> + 기본값 5%. <em>"한 잔 만드는 인건비"</em> → <em>"한 잔 만들 때 드는 손품(원)"</em> + "월 인건비÷월 잔수로 추정" 자동 추정 버튼.</div>
+  <div class="row"><span class="label">측정</span> 입력 30% 미만 이탈률 −30%.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-11] 개인정보·저장 신뢰 문구 일관 적용 + 공유 링크 미리보기 <span class="agree-mark a">A</span> + <span class="agree-mark b">B</span></div>
+  <div class="meta">노력도 M · P1 · R5 핵심 회복</div>
+  <div class="row"><span class="label">문제</span> A: 매출·원가가 URL/서버에 남는지 불안. B: 공유 링크 받는 사람 화면 미리보기 없음.</div>
+  <div class="row"><span class="label">변경안</span>
+    <ul>
+      <li>랜딩 히어로·계산기 진입 안내·저장 카드 3곳에 동일 카피:<br/><em>"입력 데이터는 사장님 기기에만 저장됩니다. 서버 전송 없음. 공유 링크를 만들 때만 URL에 포함됩니다."</em></li>
+      <li>"저장하고 공유 링크 복사" 옆에 <em>"받는 사람이 보는 화면 미리보기"</em> 토글</li>
+      <li>미리보기 모달에 "민감 항목 가리기" 체크박스 (월세·인건비 숨기고 잔당 이익만 공유 옵션)</li>
+      <li>실제 구현이 다르면(예: 서버 전송이 있다면) 카피를 코드에 맞추거나 코드를 카피에 맞춰 정합화 — <strong>거짓 카피 절대 금지</strong></li>
+    </ul>
+  </div>
+  <div class="row"><span class="label">측정</span> 공유 링크 복사 +30%, 문의 감소.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-07] 마진 구간별 카피 + 입력 신뢰도 표시 통합 <span class="agree-mark b">B</span></div>
+  <div class="meta">노력도 S · P1·P2 · R4·R5</div>
+  <div class="row"><span class="label">변경안</span>
+    <ul>
+      <li>결과 옆: <em>"입력 정확도: 사장님 입력 N개 + 기본값 M개 사용 중"</em></li>
+      <li>기본값 사용 ≥3 → 노랑, ≥5 → 빨강. 사용자에게 "더 정확하려면 폐기율·인건비를 본인값으로"</li>
+      <li>마진 구간별 카피는 P1-03과 동일 상수 활용</li>
+    </ul>
+  </div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-09] 모바일 sticky 하단 CTA + 한 손 도달 영역 <span class="agree-mark b">B</span></div>
+  <div class="meta">노력도 M · P1 · R3·R6</div>
+  <div class="row"><span class="label">변경안</span> "이 메뉴 500원 올리면?", "저장하고 공유 링크 복사"를 모바일(&lt;640px)에서 하단 sticky. <code>safe-area-inset-bottom</code> 적용. 키보드 노출 시 자동 숨김. 결과바에는 다음 행동 1개만.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-10] 모바일 input 터치 타깃 44px+ <span class="agree-mark a">A</span></div>
+  <div class="meta">노력도 S · P1 · R3·R6 (WCAG 2.5.5)</div>
+  <div class="row"><span class="label">문제</span> Audit A Playwright 측정: 414px 뷰포트에서 input 높이 24px 항목 다수.</div>
+  <div class="row"><span class="label">변경안</span> 모든 폼 컨트롤 <code>min-height: 44px</code> + 적절한 패딩. inputmode·숫자 패드 최적화 함께 점검.</div>
+  <div class="row"><span class="label">측정</span> axe touch-target 0 위반, Pa11y 통과.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-04] 가격 카드 재명명 (오늘 계산 / 다음 달 비교 / 매장 비교) <span class="agree-mark both">합의</span></div>
+  <div class="meta">노력도 S · P1·P2 · R1·R4</div>
+  <div class="row"><span class="label">변경안</span>
+    <ul>
+      <li><strong>무료:</strong> "오늘 한 메뉴 계산" — 한 잔 손익이 진짜 보이는 무료 도구, 카드 등록 없음</li>
+      <li><strong>베이직 9,900원:</strong> "자주 파는 메뉴 저장·다음 달 비교" — 엑셀로 매번 다시 입력하는 사장님</li>
+      <li><strong>스탠다드 19,900원:</strong> "1~3매장 비교와 원재료 변동 점검" — 엑셀 매장 비교 30분→5분</li>
+      <li>각 카드 CTA: 무료 "바로 계산", 유료 "베타로 먼저 써보기"</li>
+    </ul>
+  </div>
+</div>
+
+<h3>P2 — 3건 (장기, 첫 패스에서 설계 메모만)</h3>
+
+<div class="backlog p2">
+  <div class="id">[P2-10] 사장님 사례 카드 2~3개 (랜딩 하단 또는 가격 앞) <span class="agree-mark both">합의</span></div>
+  <div class="meta">노력도 L · P1·P2 · R5</div>
+  <div class="row"><span class="label">변경안</span> 베타 사용자 2~3명 인터뷰, 익명 가능. <em>"가격 500원 올려 월 12만원 추가 이익"</em>식 카피 + 숫자만으로 시작. 사진 불필요.</div>
+</div>
+
+<div class="backlog p2">
+  <div class="id">[P2-11] 다음 달 비교 자동 메일 (월 1회 재방문 루프) <span class="agree-mark b">B</span></div>
+  <div class="meta">노력도 L · P2 · R5</div>
+  <div class="row"><span class="label">변경안</span> 베타 신청 시 opt-in 체크박스. 발송 인프라 결정(Resend/SES/Plunk)은 ADR 0003 별도. 매장 데이터는 메일 본문에 포함하지 말 것 — 로그인 링크만.</div>
+</div>
+
+<div class="backlog p2">
+  <div class="id">[P2-12] 카페 마진 벤치 데이터 출처 페이지 (<code>/benchmarks</code>) <span class="agree-mark b">B</span></div>
+  <div class="meta">노력도 M · P1·P2 · R5</div>
+  <div class="row"><span class="label">변경안</span> 통계청·소상공인시장진흥공단·자체 베타 집계 출처 노출. 분기별 1회 수동 업데이트, 변경 일자 표기. P1-03 카피의 "카페 평균 55%대" 각주 링크.</div>
+</div>
+
+<!-- ========================================== -->
+<h2 id="s7"><span class="num">7.</span>Phase 실행 순서</h2>
+
+<table>
+  <tr><th>Phase</th><th>기간</th><th>항목 (순서대로)</th><th>완료 조건</th></tr>
+  <tr>
+    <td><strong>Phase 1</strong><br/>R6 회복 + 첫 진입 정상화</td>
+    <td>1.5~2주</td>
+    <td>
+      <ol style="margin:0;padding-left:18px;">
+        <li>P0-04 (CI 가드)</li>
+        <li>P0-01 (계산기 첫 진입 1메뉴)</li>
+        <li>P0-13 (색대비 토큰 통일)</li>
+        <li>P0-03 (입력 전문어 카피) <small>※ P1-05와 통합</small></li>
+        <li>P0-14 (LCP 회복, Phase A→B→C)</li>
+      </ol>
+    </td>
+    <td>모바일 LCP ≤2.5s, axe-core·Pa11y 0건, mobile-calc Perf ≥80</td>
+  </tr>
+  <tr>
+    <td><strong>Phase 2</strong><br/>R4·R5 회복</td>
+    <td>1~1.5주</td>
+    <td>
+      <ol style="margin:0;padding-left:18px;">
+        <li>P1-11 (신뢰 문구 + 공유 미리보기)</li>
+        <li>P1-03 (의사결정 카피)</li>
+        <li>P1-07 (입력 신뢰도)</li>
+        <li>P1-04 (가격 카드 재명명)</li>
+        <li>P1-09 (모바일 sticky)</li>
+        <li>P1-10 (터치 타깃 44px)</li>
+      </ol>
+    </td>
+    <td>결과 CTA 전환 +20%, 공유 링크 복사 +30%</td>
+  </tr>
+  <tr>
+    <td><strong>Phase 3</strong><br/>R5 사회적 증거</td>
+    <td>2주 + ADR</td>
+    <td>
+      <ol style="margin:0;padding-left:18px;">
+        <li>P2-12 (벤치 데이터 페이지)</li>
+        <li>P2-10 (사례 카드)</li>
+        <li>P2-11 (자동 메일) — ADR 후 결정</li>
+      </ol>
+    </td>
+    <td>베타 신청 전환 +15%</td>
+  </tr>
+</table>
+
+<div class="callout">
+  <strong>왜 이 순서인가.</strong>
+  <ol>
+    <li><strong>P0-04를 가장 먼저.</strong> 이후 모든 회복 PR의 회귀를 첫날부터 가드.</li>
+    <li><strong>P0-01을 두 번째.</strong> Audit A의 가장 큰 단독 발견. 페이지가 빨라져도 9개 샘플 sprawl이 남으면 P1은 여전히 이탈.</li>
+    <li><strong>P0-13을 세 번째.</strong> S(쉬움), 다른 카피 작업의 색 토큰 선결 필요.</li>
+    <li><strong>P0-14를 마지막.</strong> L(큼), 3주 phase 작업. P0-01 후 진행해야 정확한 LCP 측정 가능(메뉴 9개 줄어 자체로 LCP 개선 효과 있음).</li>
+  </ol>
+</div>
+
+<!-- ========================================== -->
+<h2 id="s8"><span class="num">8.</span>P0-14 (LCP 회복) 세부 절차</h2>
+
+<h4>1단계 점검 (코딩 시작 전, 30분)</h4>
+<pre><code>grep -rln '"use client"' src/features/cup-margin/ui/calculator/
+npm run build && du -h .next/static/css/*.css
+du -h .next/static/chunks/*.js | sort -h | tail -10
+# 가설 검증: 페이지 RSC인지, 어디서 클라이언트 트리가 시작되는지</code></pre>
+
+<h4>2단계 가설</h4>
+<ul>
+  <li>계산기 페이지 전체가 <code>"use client"</code>라면 → 페이지/레이아웃은 RSC, <code>"use client"</code>는 입력 폼·결과 패널·이벤트 핸들러를 가진 leaf 컴포넌트로 좁힘.</li>
+  <li>차트·CSV·공유·모달은 사용자 행동 후 로드되어도 됨 → <code>next/dynamic({ ssr: false })</code>.</li>
+  <li>폰트가 외부 CDN이면 → <code>next/font</code> 자체 호스팅, 핵심 1종만 preload.</li>
+</ul>
+
+<h4>3단계 측정 (각 sub-task 후)</h4>
+<pre><code>npm run lhci
+# mobile-calc Perf/LCP 변화를 PR 본문에 표로 기록</code></pre>
+
+<h4>4단계 회귀 가드</h4>
+<p>P0-04 CI가 깔린 상태에서 임계치 위반 시 머지 차단. 절대 force-merge 금지.</p>
+
+<!-- ========================================== -->
+<h2 id="s9"><span class="num">9.</span>카피 변경 규칙</h2>
+
+<ul>
+  <li><strong>두 검수의 카피 개선안 중 겹치는 것은 그대로 채택.</strong> Audit B 단계 7의 4개 화면 카피는 카피 라이브러리의 기본값.</li>
+  <li><strong>베타 사용자 수·평균 이익률은 실 데이터로 치환.</strong> 가짜 숫자 절대 금지. 실 데이터가 작으면 정직하게 "베타 사용자 N명".</li>
+  <li><strong>"카페 평균 55%대"는 P2-12 페이지 완성 전까지 각주 보류.</strong> P1-03 PR에서는 상수만 박고 "출처 페이지 준비 중" 처리.</li>
+  <li><strong>이모지(💚, 📍)는 디자인 리뷰 후 결정.</strong> 첫 PR은 텍스트만으로 동일 의미 전달 가능한지 확인.</li>
+  <li><strong>결과 보조 라벨 색은 P0-13에서 새로 만든 <code>text-muted</code> 토큰을 사용.</strong> P1-07 PR에서는 신규 텍스트만 추가, 색 토큰은 토큰 시스템에서 가져옴.</li>
+</ul>
+
+<!-- ========================================== -->
+<h2 id="s10"><span class="num">10.</span>검증·CI</h2>
+
+<h4>각 PR마다</h4>
+<pre><code>npm run lint
+npm run typecheck
+npm test
+npm run build</code></pre>
+
+<h4>UI 변경 PR (P0-01, P1-04, P1-09 등)</h4>
+<pre><code>npm run dev
+# 데스크탑 1440px + 모바일 360px·414px 직접 확인
+# 텍스트 겹침, 첫 화면 과밀, 키보드 노출 시 sticky 동작 확인</code></pre>
+
+<h4>접근성·성능 PR (P0-04, P0-13, P0-14, P1-10)</h4>
+<pre><code>npm run lhci    # 4종 매트릭스
+npm run a11y    # axe-core + Pa11y</code></pre>
+
+<h4>도메인 로직 PR (P1-03, P1-07)</h4>
+<p>Vitest로 RED→GREEN→REFACTOR. 최소 단위 테스트:</p>
+<ul>
+  <li>마진 → 등급 매핑 4 케이스 (risky/ok/good/superior 경계)</li>
+  <li>입력 신뢰도 계산 (기본값 개수 → 노랑/빨강 임계)</li>
+  <li>의사결정 카피 매핑이 카피 상수 키와 일치하는지</li>
+</ul>
+
+<!-- ========================================== -->
+<h2 id="s11"><span class="num">11.</span>보고 형식</h2>
+
+<p>각 Phase 종료 후 사용자에게 다음 형식으로 보고:</p>
+
+<pre><code>## Phase N 완료 보고
+
+### 머지된 PR
+- [#N] P0-04 LHCI/axe CI — 머지 완료, 베이스라인 PR 코멘트 #링크
+- [#N+1] P0-01 계산기 첫 진입 1메뉴 — 첫 결과 도달 입력 5→3
+- [#N+2] P0-13 색대비 토큰 통일 — axe 9→0, Pa11y 17→0
+- ...
+
+### 측정 진행 (mobile-calc 기준)
+| 시점          | Perf | LCP   | TBT     | a11y | axe | Pa11y |
+|---------------|------|-------|---------|------|-----|-------|
+| 베이스라인    |  27  | 12.7s | 2,517ms |  96  |  9  |  17   |
+| P0-13 후      |  27  | 12.7s | 2,517ms |  99  |  0  |   0   |
+| P0-01 후      |  41  |  9.5s | 1,800ms |  99  |  0  |   0   |
+| P0-14 PhaseA  |  55  |  6.2s | 1,200ms |  99  |  0  |   0   |
+| P0-14 PhaseB  |  78  |  3.5s |   900ms |  99  |  0  |   0   |
+| P0-14 PhaseC  |  85  |  2.3s |   180ms |  99  |  0  |   0   |
+| Phase 2 임계 |  80+ |  2.5s↓|  200ms↓ |  98+ |  0  |   0   |
+
+### 미해결 의사결정
+- P2-11 자동 메일: 발송 인프라 결정 필요 (ADR 0003 초안 첨부)
+
+### 다음 Phase 시작 조건
+- [ ] Phase 2 임계치 달성
+- [ ] axe·Pa11y 0건 유지</code></pre>
+
+<!-- ========================================== -->
+<h2 id="s12"><span class="num">12.</span>절대 하지 말 것</h2>
+
+<div class="callout danger">
+  <ul>
+    <li>두 검수 백로그에 없는 기능 추가 (회원가입, 결제, AI 추천). 베타 단계 R2 강점 보존.</li>
+    <li>영문 SaaS 카피 직역 ("Get started", "Powerful insights" 등).</li>
+    <li>"양호" 한 단어로 끝나는 결과 카피 부활. P1-03이 정확히 그걸 고치는 작업.</li>
+    <li>검수 결과를 임의 재해석해 백로그 스킵. 스킵하려면 사용자에게 근거와 함께 묻기.</li>
+    <li>P0-14를 P0-04 없이 시작. 측정 가드레일 없이 LCP 회복 작업은 회귀 추적 불가.</li>
+    <li>P0-14 phase 사이에 LHCI 측정 건너뛰기. 각 phase 후 mobile-calc Perf·LCP를 PR에 표로 기록.</li>
+    <li>색대비 위반을 "회색 한 톤만 어둡게" 식으로 즉흥 픽스. 토큰 1개로 통일하지 않으면 다음 PR에서 회귀.</li>
+    <li>P1-11에서 카피와 코드 동작이 다른데 카피만 바꾸기. 데이터 전송 약속과 실제 구현이 일치해야 함 — 거짓 약속 절대 금지.</li>
+    <li>샘플 9개 메뉴를 완전 제거. P0-01은 "기본은 1개, 9개는 보조 버튼 뒤로"이지 삭제가 아님.</li>
+    <li><code>--no-verify</code>로 git hook 건너뛰기. 빌드/lint/test 실패는 다음 항목으로 넘어가기 전에 해결.</li>
+  </ul>
+</div>
+
+<!-- ========================================== -->
+<h2 id="s13"><span class="num">13.</span>시작 신호</h2>
+
+<p>이 프롬프트를 읽었으면 다음을 가장 먼저 수행:</p>
+
+<ol>
+  <li><code>reports/cup-margin-audit/index.html</code> 정독 + <code>assets/cup-calculator-m414.png</code> 직접 확인 (P0-01 sprawl 시각화).</li>
+  <li><code>reports/claude-code-review/cup-margin-ux-audit.html</code> 단계 2-3·6·7 정독.</li>
+  <li><code>reports/claude-code-review/measurements/</code> JSON 7개를 회귀 가드 베이스라인으로 인지.</li>
+  <li><code>src/features/cup-margin/</code> 트리 read-only 탐색. 특히 <code>ui/calculator/</code>의 <code>"use client"</code> 분포.</li>
+  <li><code>node_modules/next/dist/docs/</code>에서 App Router (RSC vs Client, dynamic import, font 최적화) 가이드 확인.</li>
+  <li><strong>P0-04부터 시작.</strong> CI 1회 통과 → P0-01 → P0-13 → (P0-03+P1-05 통합) → P0-14.</li>
+  <li>매 작업 시작 전 사용자에게 한 줄 보고:<br/><em>"P0-NN 시작합니다. 예상 변경 파일: ... · 예상 측정 변화: mobile-calc Perf X→Y, LCP A→B"</em></li>
+</ol>
+
+<p style="margin-top:30px;"><strong>준비됐으면 시작하라.</strong></p>
+
+<hr style="border:none;border-top:1px solid var(--line);margin:40px 0 12px;" />
+<p><small>본 프롬프트는 Audit A(<code>reports/cup-margin-audit/</code>)와 Audit B(<code>reports/claude-code-review/</code>)의 모든 백로그·발견·측정을 합집합으로 통합한 단일 실행 지시서. 충돌하는 점수(R2, R3)는 Audit A의 Playwright 실측을 우선 채택. 두 검수의 <code>heremes-agent-prompt.md</code>·<code>hermes-work-prompt.md</code>는 각자 단일 검수 기반이므로, 본 통합 프롬프트가 우선합니다.</small></p>
+
+</main>
+</body>
+</html>
