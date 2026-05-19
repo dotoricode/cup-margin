@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>컵마진 페르소나 기반 실제 UX 검수 리포트</title>
+  <style>
+    body{margin:0;background:#f6f4ef;color:#172033;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif;line-height:1.62}
+    main{max-width:1120px;margin:0 auto;padding:32px 18px 72px}
+    h1{font-size:34px;line-height:1.18;margin:0 0 10px}
+    h2{font-size:24px;margin:38px 0 12px;border-top:1px solid #ddd4c7;padding-top:26px}
+    h3{font-size:18px;margin:24px 0 8px}
+    p{margin:8px 0}.lead{font-size:18px;color:#4c5668}.muted{color:#687386}.good{color:#087443;font-weight:700}.bad{color:#b42318;font-weight:700}.warn{color:#a15c00;font-weight:700}
+    table{width:100%;border-collapse:collapse;margin:14px 0;background:white;border:1px solid #e4ddd2;border-radius:10px;overflow:hidden}
+    th,td{border-bottom:1px solid #ece6dd;padding:10px 12px;vertical-align:top;text-align:left;font-size:14px}
+    th{background:#222b3a;color:white}tr:last-child td{border-bottom:0}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+    .card{background:white;border:1px solid #e4ddd2;border-radius:12px;padding:16px;box-shadow:0 10px 28px -24px #172033}
+    .score{font-size:30px;font-weight:800}.pill{display:inline-block;padding:3px 8px;border-radius:999px;background:#eef2ff;color:#1d3d8f;font-weight:700;font-size:12px}
+    figure{margin:12px 0;background:white;border:1px solid #e4ddd2;border-radius:12px;padding:10px}figure img{width:100%;height:220px;object-fit:cover;object-position:top;border-radius:8px;border:1px solid #eee}figcaption{font-size:13px;color:#596579;margin-top:6px}
+    code{background:#eee7dc;padding:1px 5px;border-radius:5px}.small{font-size:13px}
+    @media(max-width:720px){h1{font-size:28px}th,td{font-size:13px;padding:8px}main{padding:22px 12px 48px}}
+  </style>
+</head>
+<body>
+<main>
+  <h1>컵마진 페르소나 기반 실제 UX 검수 리포트</h1>
+  <p class="lead">검수일: 2026-05-19. 대상은 배포 사이트 <a href="https://cup-margin.vercel.app">https://cup-margin.vercel.app</a> 및 <a href="https://cup-margin.vercel.app/calculator">/calculator</a>입니다. 점수는 배포 사이트 직접 관찰, Playwright 스크린샷, Lighthouse, Pa11y, axe 결과를 1차 근거로 삼았습니다. 로컬 코드는 Heremes agent 작업 지시 보강에만 사용했습니다.</p>
+  <p><span class="pill">결론</span> 컵마진은 “한 잔에 얼마 남는가”라는 명료성과 결과 해석은 좋지만, 모바일 첫 계산의 과밀함, 개인정보/저장 신뢰 설명, 모바일 성능과 대비가 실제 사용 가능 기준인 24점에 못 미칩니다. 총점은 <strong>18/30</strong>입니다.</p>
+
+  <h2>1. 페르소나·루브릭 확정</h2>
+  <table>
+    <tr><th>구분</th><th>확정 기준</th></tr>
+    <tr><td>P1 80%</td><td>47세 영세 카페 사장님. 갤럭시 중급기, 강한 매장 조명, 한 손 조작, 5-10분 안에 가격 판단이 필요합니다. 가입·카드·전문 용어·8단계 이상 입력에 민감합니다.</td></tr>
+    <tr><td>P2 20%</td><td>1-3매장 점주. 엑셀보다 빠른 메뉴별 비교, 저장, CSV, 매장 비교가 유료 전환 근거입니다.</td></tr>
+    <tr><td>루브릭</td><td>R1 명료성, R2 진입 부담, R3 작업 효율, R4 결과 해석, R5 신뢰, R6 접근성·성능. 각 1-5점, 30점 만점, 24점 이상을 실제 쓸 만한 수준으로 봅니다.</td></tr>
+  </table>
+
+  <h2>2. cup-margin 재검수</h2>
+  <div class="grid">
+    <figure><a href="assets/cup-landing-m414.png"><img src="assets/cup-landing-m414.png" alt="컵마진 랜딩 모바일 414px"></a><figcaption>랜딩 414px: “아메리카노 3,500원, 한 잔에 진짜 얼마 남나요?”가 첫 화면에서 명확합니다.</figcaption></figure>
+    <figure><a href="assets/cup-calculator-m414.png"><img src="assets/cup-calculator-m414.png" alt="컵마진 계산기 모바일 414px"></a><figcaption>계산기 414px: 첫 진입에서 9개 샘플 메뉴 입력이 길게 노출되어 P1에게 과밀합니다.</figcaption></figure>
+    <figure><a href="assets/cup-landing-d1440.png"><img src="assets/cup-landing-d1440.png" alt="컵마진 랜딩 데스크탑"></a><figcaption>랜딩 1440px: 결과 패널과 계산 예시가 함께 보여 가치 체험은 빠릅니다.</figcaption></figure>
+  </div>
+  <table>
+    <tr><th>축</th><th>점수</th><th>근거</th></tr>
+    <tr><td>R1 명료성</td><td>4</td><td>웹 텍스트 기준 H1은 “한 잔에 진짜 얼마 남나요?”이고, 판매가·원가·월 판매량·월세를 넣는다고 설명합니다. P1 언어와 시나리오는 좋습니다.</td></tr>
+    <tr><td>R2 진입 부담</td><td>3</td><td>로그인 없이 계산 가능하고 무료/카드 등록 없음이 명시됩니다. 다만 <code>/calculator</code>는 샘플 9개 메뉴가 먼저 펼쳐져 “내 메뉴 하나” 시작감이 약합니다.</td></tr>
+    <tr><td>R3 작업 효율</td><td>2</td><td>Playwright 414px에서 계산기 입력 높이 24px 항목이 다수 잡혔고, 첫 화면 이후 스크롤 길이가 큽니다. P1의 5-10분 한 손 조작에는 부담입니다.</td></tr>
+    <tr><td>R4 결과 해석</td><td>4</td><td>“운영 여유가 있어요”, “가격·원가 우선 점검”, “몇 잔까지 줄어도 괜찮을까요?”처럼 숫자를 행동으로 번역합니다. 강점은 유지해야 합니다.</td></tr>
+    <tr><td>R5 신뢰</td><td>3</td><td>계산식은 “판매가 - 변동비 - 잔당 고정비 배분”으로 노출됩니다. 저장은 “이 기기에만 저장”이라고 말하지만 입력 데이터의 서버 전송 여부, 공유 링크 포함 범위, 개인정보 보호 설명은 부족합니다.</td></tr>
+    <tr><td>R6 접근성·성능</td><td>2</td><td>Lighthouse 모바일: 랜딩 성능 29, FCP 11.1s, LCP 13.2s, TBT 1,600ms. 계산기 모바일: 성능 45, FCP 11.1s, LCP 12.2s. Pa11y 랜딩 13건, 계산기 4건 모두 대비 오류. axe도 color-contrast serious 1개씩 검출했습니다.</td></tr>
+  </table>
+
+  <h3>P1 5단계 워크스루</h3>
+  <table>
+    <tr><th>단계</th><th>관찰</th><th>마찰</th></tr>
+    <tr><td>1. 랜딩 도착</td><td>7초 안에 카페 메뉴 손익 계산기임을 이해합니다.</td><td>신뢰 근거가 첫 화면에는 계산 예시 위주이고 “다른 사장님” 증거는 뒤에 없습니다.</td></tr>
+    <tr><td>2. 계산기 진입</td><td>로그인 없이 들어갑니다.</td><td>샘플 9개가 길게 펼쳐져 “내 아메리카노 하나만 바꾸기”보다 관리 화면처럼 보입니다.</td></tr>
+    <tr><td>3. 첫 입력</td><td>월 운영비, 메뉴명, 판매가, 원가 등을 바꿉니다.</td><td>모르면 0으로 시작해도 되는 항목과 꼭 필요한 항목의 위계가 더 필요합니다.</td></tr>
+    <tr><td>4. 결과 해석</td><td>잔당 이익, 월 이익, 마진율, 가격 변경 위험을 봅니다.</td><td>숫자가 많아 첫 결론과 다음 행동이 묻힙니다.</td></tr>
+    <tr><td>5. 저장/공유</td><td>기기 저장과 CSV가 있습니다.</td><td>가게 매출·원가가 URL이나 서버에 남는지 불안할 수 있습니다.</td></tr>
+  </table>
+
+  <h2>3. 벤치마크 후보 선정</h2>
+  <table>
+    <tr><th>카테고리</th><th>선정 사이트</th><th>선정 이유</th></tr>
+    <tr><td>A 한국 자영업자 SaaS</td><td><a href="https://cashnote.kr/">https://cashnote.kr/</a></td><td>사장님 언어, 사업장 관리, 매출/비용/후기/신뢰 증거가 풍부합니다.</td></tr>
+    <tr><td>B 한국 비전문가 금융·계산</td><td><a href="https://www.finda.co.kr/finance/calculator/debt-repayment">https://www.finda.co.kr/finance/calculator/debt-repayment</a></td><td>대출금액·금리·기간 입력을 월 상환액/총이자 판단으로 번역합니다.</td></tr>
+    <tr><td>C 글로벌 단일 목적 계산기</td><td><a href="https://www.shopify.com/tools/profit-margin-calculator/retail">https://www.shopify.com/tools/profit-margin-calculator/retail</a></td><td>비로그인 단일 목적 마진 계산기로 입력과 결과가 한 화면에 가깝습니다.</td></tr>
+    <tr><td>D 글로벌 소상공인 도구</td><td><a href="https://squareup.com/us/en/restaurants">https://squareup.com/us/en/restaurants</a></td><td>카페/레스토랑 운영자를 대상으로 신뢰 수치, 사례, 기능 묶음을 제시합니다.</td></tr>
+    <tr><td>E 가격 시뮬레이션·What-if</td><td><a href="https://www.bls.gov/data/inflation_calculator.htm">https://www.bls.gov/data/inflation_calculator.htm</a></td><td>금액·시점 입력을 현재 가치로 바꾸는 공식 데이터 기반 what-if 도구입니다. Playwright는 403으로 차단되어 텍스트 근거는 web 직접 열람을 사용했습니다.</td></tr>
+  </table>
+
+  <h2>4. 벤치마크 검수</h2>
+  <div class="grid">
+    <figure><a href="assets/cashnote-m414.png"><img src="assets/cashnote-m414.png" alt="캐시노트 모바일"></a><figcaption>Cashnote: “내 사업이 채워지는 모든 순간”과 이용 사업장/후기 중심.</figcaption></figure>
+    <figure><a href="assets/finda-m414.png"><img src="assets/finda-m414.png" alt="핀다 계산기 모바일"></a><figcaption>Finda: “매달 얼마나 갚아야 할까?”처럼 문제를 질문으로 시작.</figcaption></figure>
+    <figure><a href="assets/shopify-m414.png"><img src="assets/shopify-m414.png" alt="Shopify 계산기 모바일"></a><figcaption>Shopify: 입력 필드와 결과 영역이 단일 목적 계산기 구조를 이룹니다.</figcaption></figure>
+    <figure><a href="assets/square-m414.png"><img src="assets/square-m414.png" alt="Square 모바일"></a><figcaption>Square: 음식점/카페 유형과 450K+ 신뢰 수치가 강합니다.</figcaption></figure>
+    <figure><a href="assets/bls-m414.png"><img src="assets/bls-m414.png" alt="BLS 모바일 차단 화면"></a><figcaption>BLS: Playwright 캡처는 Access Denied. web 직접 열람에서는 CPI-U 근거 설명 확인.</figcaption></figure>
+  </div>
+  <table>
+    <tr><th>사이트</th><th>점수</th><th>차용할 패턴</th><th>차별화 지점</th></tr>
+    <tr><td>Cashnote</td><td>21/30</td><td>사장님 후기, 이용 규모, 사업자 정보/개인정보 링크를 신뢰 장치로 전면화.</td><td>컵마진은 앱 설치형 올인원이 아니라 웹에서 즉시 계산되는 가벼움을 밀어야 합니다.</td></tr>
+    <tr><td>Finda</td><td>23/30</td><td>“매달 얼마나 갚아야 할까?”처럼 사용자의 불안을 질문으로 바꾸고, 상환 방식별 차이를 설명.</td><td>컵마진은 금융 용어보다 “가격표 바꾸기 전” 같은 매장 상황어를 써야 합니다.</td></tr>
+    <tr><td>Shopify</td><td>24/30</td><td>단일 목적 입력 → 결과 → FAQ 공식 설명의 흐름.</td><td>카페 원가에는 월세, 폐기, 배달앱 수수료가 있어 단순 소매 마진보다 더 한국 카페형이어야 합니다.</td></tr>
+    <tr><td>Square</td><td>21/30</td><td>“Coffee shops” 같은 업종 선택과 450K+ 신뢰 수치, 사례 인용.</td><td>컵마진은 POS 도입 설득이 아니라 30초 계산으로 첫 가치를 보여줘야 합니다.</td></tr>
+    <tr><td>BLS</td><td>23/30</td><td>공식 데이터 출처와 계산 기준을 짧게 명시.</td><td>컵마진은 공공기관식 설명보다 사장님이 검산 가능한 한 줄 수식과 사례가 필요합니다.</td></tr>
+  </table>
+
+  <h2>5. 갭 분석</h2>
+  <table>
+    <tr><th>평가 축</th><th>cup-margin</th><th>Cashnote</th><th>Finda</th><th>Shopify</th><th>Square</th><th>BLS</th><th>벤치 평균</th><th>갭</th></tr>
+    <tr><td>R1 명료성</td><td>4</td><td>4</td><td>4</td><td>4</td><td>4</td><td>3</td><td>3.8</td><td class="good">+0.2</td></tr>
+    <tr><td>R2 진입 부담</td><td>3</td><td>3</td><td>4</td><td>5</td><td>2</td><td>5</td><td>3.8</td><td class="bad">-0.8</td></tr>
+    <tr><td>R3 작업 효율</td><td>2</td><td>3</td><td>4</td><td>4</td><td>3</td><td>4</td><td>3.6</td><td class="bad">-1.6</td></tr>
+    <tr><td>R4 결과 해석</td><td>4</td><td>3</td><td>4</td><td>4</td><td>4</td><td>3</td><td>3.6</td><td class="good">+0.4</td></tr>
+    <tr><td>R5 신뢰</td><td>3</td><td>5</td><td>4</td><td>4</td><td>5</td><td>5</td><td>4.6</td><td class="bad">-1.6</td></tr>
+    <tr><td>R6 접근성·성능</td><td>2</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3</td><td>3.0</td><td class="bad">-1.0</td></tr>
+  </table>
+  <p>음수 갭은 P1에게 직접 치명적입니다. 진입 부담과 작업 효율이 낮으면 “내 가게 값 하나만 넣어보자” 전에 샘플 관리 화면처럼 느껴지고, 신뢰가 낮으면 매출·원가 입력을 멈춥니다. 접근성·성능 갭은 매장 조명과 중급기 환경에서 체감 이탈로 이어집니다.</p>
+
+  <h2>6. 개선 백로그</h2>
+  <table>
+    <tr><th>ID</th><th>우선순위/노력</th><th>문제·권고·근거·성공 측정</th></tr>
+    <tr><td>P0-1</td><td>P0 / M / P1</td><td><strong>첫 계산을 한 메뉴 흐름으로 축소.</strong> P1이 9개 샘플 메뉴에 압도됩니다. 기본은 한 메뉴 직접 입력, 9개 샘플은 보조 버튼 뒤로 이동. 근거: Shopify 단일 목적 구조. 성공 측정: 첫 결과 도달 입력 수 5개 이하, 모바일 첫 화면 이탈 감소.</td></tr>
+    <tr><td>P0-2</td><td>P0 / S / P1</td><td><strong>결과 첫 줄을 의사결정 문장으로 변경.</strong> 숫자가 많아 다음 행동이 묻힙니다. “지금 가격 유지 / 500원 인상 검토 / 원가 먼저 점검”을 첫 문장으로 둡니다. 근거: Finda의 상환 방식별 해석. 성공 측정: 결과 패널 CTA 클릭률.</td></tr>
+    <tr><td>P0-3</td><td>P0 / S / P1</td><td><strong>저장·개인정보 신뢰 문구 보강.</strong> 매출·원가가 어디 저장되는지 불안합니다. “기본은 이 기기 저장, 서버 전송 없음, 공유 링크 생성 시 URL 포함”을 명시합니다. 근거: BLS의 데이터 출처 명시, Cashnote의 법적 신뢰 링크. 성공 측정: 저장 버튼 클릭률과 문의 감소.</td></tr>
+    <tr><td>P0-4</td><td>P0 / M / P1</td><td><strong>대비·터치·모바일 성능 개선.</strong> Pa11y 대비 오류 17건, axe color-contrast serious, 모바일 Lighthouse FCP/LCP 11초대. 색상 대비, input min-height 44px, 초기 렌더 JS/이미지 경량화를 처리합니다. 성공 측정: Pa11y 오류 0, 모바일 LCP 2.5s 근접.</td></tr>
+    <tr><td>P1-1</td><td>P1 / S / P1</td><td>계산기 상단을 “샘플 카페 기준”보다 “내 메뉴 하나만 바꾸면 결과가 바뀝니다”로 전환. P1이 샘플과 실제 입력을 혼동하지 않게 합니다.</td></tr>
+    <tr><td>P1-2</td><td>P1 / M / P1</td><td>월 운영비에 “모르면 0원으로 시작” 프리셋 제공. 모르는 숫자 때문에 멈추는 문제를 줄입니다.</td></tr>
+    <tr><td>P1-3</td><td>P1 / S / P1</td><td>수식은 유지하되 접을 수 있는 “계산 근거”로 재배치. 신뢰는 살리고 첫 결과의 인지 부하는 낮춥니다.</td></tr>
+    <tr><td>P1-4</td><td>P1 / S / P1/P2</td><td>가격 카드를 “오늘 계산 / 다음 달 비교 / 여러 매장 비교”로 재명명. 베이직·스탠다드 차이가 더 즉시 이해됩니다.</td></tr>
+    <tr><td>P1-5</td><td>P1 / M / P1</td><td>사장님 사례 2-3개를 랜딩 하단 또는 가격 앞에 추가. Cashnote처럼 동료 사용 증거가 신뢰를 만듭니다.</td></tr>
+    <tr><td>P1-6</td><td>P1 / S / P1</td><td>저장 버튼을 “이 기기에 저장하고 링크 복사”로 바꾸고 CSV는 보조 버튼으로 낮춥니다.</td></tr>
+    <tr><td>P2-1</td><td>P2 / M / P2</td><td>매장 2-3개 비교는 스탠다드 설계 메모로 남깁니다. 첫 개선 패스에서는 구현하지 않습니다.</td></tr>
+    <tr><td>P2-2</td><td>P2 / L / P2</td><td>원재료 단가 변동 자동 추적은 장기 설계로 분리합니다. 지금은 “원두·우유값이 오르면 다시 계산” 안내로 충분합니다.</td></tr>
+  </table>
+
+  <h2>7. 화면별 즉시 적용 카피·UI 제안</h2>
+  <table>
+    <tr><th>화면</th><th>현재</th><th>개선안</th><th>근거</th></tr>
+    <tr><td>랜딩 히어로</td><td>아메리카노 3,500원, 한 잔에 진짜 얼마 남나요? / 내 메뉴로 30초 계산하기</td><td>헤드라인 유지. 서브카피: “판매가·원가·월 판매량만 바꾸면, 한 잔 이익과 가격 인상 위험을 바로 봅니다.” CTA1 “내 메뉴 하나로 계산” CTA2 “샘플 결과 보기”. 신뢰 보조문 “가입·카드 없이 계산, 기본 저장은 이 기기에서만.”</td><td>R1 강점은 유지하고 R2/R5를 보강합니다.</td></tr>
+    <tr><td>가격 카드</td><td>무료/베이직/스탠다드 기능 목록 중심</td><td>무료: “오늘 한 메뉴 계산” / 베이직: “자주 파는 메뉴 저장·다음 달 비교” / 스탠다드: “1-3매장 비교와 원재료 변동 점검”. 각 카드 CTA는 무료 “바로 계산”, 유료 “베타로 먼저 써보기”.</td><td>P1/P2 구매 판단을 기능명보다 상황으로 번역합니다.</td></tr>
+    <tr><td>계산기 진입 안내</td><td>샘플 카페 기준, 9개 샘플 보기</td><td>“처음엔 메뉴 하나만 바꾸세요. 모르는 항목은 0원으로 시작해도 됩니다.” 버튼: “내 메뉴 하나 입력”, “샘플 9개 보기”, “입력 비우기”.</td><td>R3 갭을 줄입니다.</td></tr>
+    <tr><td>결과 패널</td><td>현재 입력값 기준으로 운영 여유가 있어요</td><td>“지금 가격은 유지해도 괜찮습니다. 다만 소금빵·치킨 샌드위치는 원가를 먼저 보세요.” 위험일 때: “가격보다 원가 구조를 먼저 점검하세요.”</td><td>R4 강점을 더 행동 중심으로 만듭니다.</td></tr>
+  </table>
+
+  <h2>Heremes 작업 프롬프트</h2>
+  <p>별도 파일: <a href="heremes-agent-prompt.md">heremes-agent-prompt.md</a>. 첫 개선 패스는 P0 전부와 P1 2-3개만 구현하도록 제한했습니다.</p>
+
+  <h2>원시 결과 위치</h2>
+  <ul>
+    <li>Playwright 캡처: <code>raw/capture-results.json</code></li>
+    <li>Lighthouse: <code>raw/lighthouse-*.json</code></li>
+    <li>Pa11y: <code>raw/pa11y-landing.json</code>, <code>raw/pa11y-calculator.json</code></li>
+    <li>axe: <code>raw/axe-results.json</code></li>
+  </ul>
+</main>
+</body>
+</html>
