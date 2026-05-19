@@ -25,23 +25,23 @@ export function SaveCalculatorCard({
   onLoadState?: (state: SavedMultiMenuState) => void;
 }) {
   return (
-    <div className="cm-card-muted rounded-[24px] p-4">
+    <div className="cm-card-muted rounded-2xl p-4">
       <p className="text-sm font-semibold text-[#0b2545]">{onExportCsv ? "저장 · CSV · 링크 공유" : "저장 · 링크 공유"}</p>
       <p className="mt-1 text-sm leading-6 text-[var(--cm-muted)]" role="status" aria-live="polite">{message}</p>
       <p className="mt-2 rounded-xl bg-white px-3 py-2 text-xs font-bold leading-5 text-[#0b2545] ring-1 ring-[#d8e3ee]">{calculatorTrustCopy.save}</p>
       <div className="mt-3 grid gap-2">
-        <button type="button" onClick={onSave} className="cm-button-primary min-h-11 w-full rounded-2xl px-4 py-3 text-sm font-semibold">
+        <button type="button" onClick={onSave} className="cm-button-primary min-h-11 w-full rounded-lg px-4 py-3 text-sm font-semibold">
           저장하고 공유 링크 복사
         </button>
         {onExportCsv ? (
-          <button type="button" onClick={onExportCsv} className="cm-button-secondary min-h-11 w-full rounded-2xl px-4 py-3 text-sm font-semibold">
+          <button type="button" onClick={onExportCsv} className="cm-button-secondary min-h-11 w-full rounded-lg px-4 py-3 text-sm font-semibold">
             CSV 다운로드
           </button>
         ) : null}
       </div>
       {recentStates.length > 0 && onLoadState ? (
         <div className="mt-4 border-t border-[#d8e3ee] pt-3">
-          <p className="text-xs font-black text-[var(--cm-muted)]">최근 저장 계산</p>
+          <p className="text-xs font-bold text-[var(--cm-muted)]">최근 저장 계산</p>
           <div className="mt-2 space-y-2">
             {recentStates.map((state) => (
               <button
@@ -84,22 +84,22 @@ export function MobileStickyResultBar({
   const handleClick = onCtaClick ?? (() => onChangeView?.(currentView === "adjust" ? "result" : "adjust"));
 
   return (
-    <div className="cm-mobile-bottom-sheet fixed inset-x-3 bottom-3 z-40 rounded-[24px] border border-[#c8d6e6] bg-white/95 p-3 shadow-[rgba(15,23,42,0.24)_0px_18px_44px_-18px] backdrop-blur sm:hidden" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
+    <div className="cm-mobile-bottom-sheet sticky bottom-3 z-40 mx-3 mt-6 rounded-2xl border border-[#c8d6e6] bg-white p-3 shadow-[rgba(15,23,42,0.24)_0px_18px_44px_-18px] sm:hidden" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}>
       <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
-        <div className="rounded-2xl bg-[#eef5fb] px-3 py-2">
-          <p className="text-[11px] font-black text-[var(--cm-muted)]">한 잔 이익</p>
-          <p className="mt-0.5 whitespace-nowrap text-base font-black tracking-[-0.03em] text-[#0b2545]">{formatWon(profit)}</p>
+        <div className="rounded-xl bg-[#eef5fb] px-3 py-2">
+          <p className="text-[11px] font-semibold text-[var(--cm-muted)]">한 잔 이익</p>
+          <p className="mt-0.5 whitespace-nowrap text-base font-bold text-[#0b2545]">{formatWon(profit)}</p>
         </div>
-        <div className="rounded-2xl bg-[#f8fafc] px-3 py-2">
-          <p className="text-[11px] font-black text-[var(--cm-muted)]">마진율</p>
-          <p className="mt-0.5 whitespace-nowrap text-base font-black tracking-[-0.03em] text-[#061b31]">{formatPercent(marginRate)}</p>
+        <div className="rounded-xl bg-[#f8fafc] px-3 py-2">
+          <p className="text-[11px] font-semibold text-[var(--cm-muted)]">마진율</p>
+          <p className="mt-0.5 whitespace-nowrap text-base font-bold text-[#061b31]">{formatPercent(marginRate)}</p>
         </div>
         <button
           type="button"
           onClick={handleClick}
           disabled={ctaDisabled}
           aria-label={ctaAriaLabel}
-          className="cm-button-primary h-full min-h-11 rounded-2xl px-3 text-xs font-black disabled:cursor-not-allowed disabled:opacity-50"
+          className="cm-button-primary h-full min-h-11 rounded-lg px-3 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-50"
         >
           {ctaLabel ?? fallbackLabel}
         </button>
