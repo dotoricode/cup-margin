@@ -1,4 +1,10 @@
-@import "pretendard/dist/web/variable/pretendardvariable.css";
+@font-face {
+  font-family: "Pretendard Variable";
+  font-style: normal;
+  font-weight: 45 920;
+  font-display: optional;
+  src: url("../../node_modules/pretendard/dist/web/variable/woff2/PretendardVariable.woff2") format("woff2-variations");
+}
 @import "tailwindcss";
 
 :root {
