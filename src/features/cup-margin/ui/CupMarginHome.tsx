@@ -125,7 +125,7 @@ export function CupMarginHome() {
         <p className="mt-2 text-sm text-[var(--cm-muted)]">{plan.caption}</p>
         <ul className="mt-6 space-y-3 text-sm font-semibold">
          {plan.features.map((feature) => (
-          <li key={feature} className="flex gap-2"><span className="text-[#008932]">✓</span>{feature}</li>
+          <li key={feature} className="flex gap-2"><span className="text-[#047857]">✓</span>{feature}</li>
          ))}
         </ul>
         <a
