@@ -29,6 +29,30 @@ export const verdictCopy: Record<
   },
 };
 
+export const calculatorTrustCopy = {
+  short: "계산값은 기본적으로 이 기기에만 저장되고 서버로 보내지 않습니다.",
+  detail: "계산값은 기본적으로 이 기기에만 저장됩니다. 서버 전송은 없고, 공유 링크를 만들 때만 계산값이 URL에 포함됩니다.",
+  save: "저장하면 이 기기에 남습니다. 공유 링크 복사를 누를 때만 계산값이 URL에 포함되어 직원·세무사에게 같은 계산을 보낼 수 있어요.",
+};
+
+export const resultDecisionCopy = {
+  keep: {
+    label: "지금 가격 유지",
+    title: "지금 가격은 유지해도 괜찮아요",
+    description: "한 잔 이익과 마진율이 안정적입니다. 당장은 판매량을 지키는 쪽이 더 중요해 보여요.",
+  },
+  reviewPrice: {
+    label: "인상 검토",
+    title: "가격 인상을 검토해보세요",
+    description: "남는 돈이 얇습니다. 300원 또는 500원 인상 시나리오를 보고 판매량이 얼마나 줄어도 괜찮은지 확인하세요.",
+  },
+  reviewCost: {
+    label: "원가 우선 점검",
+    title: "가격보다 원가 구조를 먼저 봐야 해요",
+    description: "팔아도 남는 돈이 부족합니다. 원재료비, 컵·포장비, 폐기율, 배달 수수료를 먼저 낮출 수 있는지 확인하세요.",
+  },
+};
+
 export const pricingPlans = [
   {
     name: "무료",

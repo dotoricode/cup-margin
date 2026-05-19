@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-05-19",
+  "source": "reports/cup-margin-audit/raw/*.json",
+  "policy": {
+    "rawDir": "reports/cup-margin-audit/raw",
+    "lhciOutputDir": "reports/cup-margin-audit/lhci/<formFactor>",
+    "thresholdSource": "lighthouserc.cjs",
+    "rule": "Use the best stable route/form-factor measurements as guardrail baselines. Keep raw JSON for evidence, but write generated LHCI output under reports/cup-margin-audit/lhci/<formFactor> to avoid mixing manual captures and CI artifacts."
+  },
+  "lighthouse": {
+    "landingMobile": {
+      "file": "raw/lighthouse-landing-mobile.json",
+      "performance": 0.71,
+      "accessibility": 0.96,
+      "bestPractices": 1,
+      "seo": 1
+    },
+    "calculatorMobile": {
+      "file": "raw/lighthouse-calculator-mobile.json",
+      "performance": 0.45,
+      "accessibility": 0.96,
+      "bestPractices": 1,
+      "seo": 1
+    },
+    "calculatorDesktop": {
+      "file": "raw/lighthouse-calculator-desktop.json",
+      "performance": 0.76,
+      "accessibility": 0.96,
+      "bestPractices": 1,
+      "seo": 1
+    },
+    "landingMobileDefault": {
+      "file": "raw/lighthouse-landing-mobile-default.json",
+      "performance": 0.29,
+      "accessibility": 0.96,
+      "bestPractices": 1,
+      "seo": 1,
+      "note": "Legacy/default mobile capture retained as evidence only, not used as current guardrail."
+    }
+  },
+  "accessibility": {
+    "pa11yLanding": { "file": "raw/pa11y-landing.json", "issues": 0 },
+    "pa11yCalculator": { "file": "raw/pa11y-calculator.json", "issues": 0 },
+    "pa11yAggregate": { "file": "raw/pa11y-results.json", "issues": 2 },
+    "axeAggregate": { "file": "raw/axe-results.json", "issues": 4 }
+  }
+}

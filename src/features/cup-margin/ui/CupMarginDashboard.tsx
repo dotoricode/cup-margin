@@ -38,7 +38,7 @@ export function CupMarginDashboard() {
               <PictureLogo />
               <div className="min-w-0">
                 <p className="truncate text-[15px] font-black tracking-[-0.02em]">컵마진</p>
-                <p className="hidden text-xs text-[#64748d] sm:block">가게 손익 보기</p>
+                <p className="hidden text-xs text-[var(--cm-muted)] sm:block">가게 손익 보기</p>
               </div>
             </Link>
             <div className="hidden items-center gap-2 sm:flex">
@@ -86,10 +86,10 @@ export function CupMarginDashboard() {
             <MenuComparison menus={result.menus} />
           </div>
 
-          <aside className="space-y-4 lg:sticky lg:top-5">
+          <div className="space-y-4 lg:sticky lg:top-5">
             <div className="cm-card rounded-[28px] p-5">
               <p className="text-sm font-bold text-[#0b2545]">가격과 판매량을 조정해보세요</p>
-              <p className="mt-2 text-sm leading-6 text-[#64748d]">음료·디저트·푸드 메뉴를 같이 봅니다. 움직이면 결과와 그래프가 바로 바뀝니다.</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--cm-muted)]">음료·디저트·푸드 메뉴를 같이 봅니다. 움직이면 결과와 그래프가 바로 바뀝니다.</p>
               <div className="mt-5 space-y-5">
                 {input.menus.map((menu) => (
                   <MenuSliderCard key={menu.id} menu={menu} onChange={updateMenu} />
@@ -110,15 +110,15 @@ export function CupMarginDashboard() {
                 className="mt-5 w-full accent-[#0071e3]"
                 aria-label="월 운영비 조정"
               />
-              <div className="mt-2 flex justify-between text-xs font-semibold text-[#86868b]">
+              <div className="mt-2 flex justify-between text-xs font-semibold text-[var(--cm-muted)]">
                 <span>30만원</span>
                 <span>200만원</span>
               </div>
-              <p className="mt-4 rounded-2xl border border-[#e7edf5] bg-[#f8fafc] px-4 py-3 text-sm leading-6 text-[#64748d]">
+              <p className="mt-4 rounded-2xl border border-[#e7edf5] bg-[#f8fafc] px-4 py-3 text-sm leading-6 text-[var(--cm-muted)]">
                 임대료·관리비처럼 매달 나가는 비용입니다. 지금 입력값 기준 메뉴 1개당 평균 {formatWon(result.fixedCostPerCup)}씩 반영됩니다.
               </p>
             </div>
-          </aside>
+          </div>
         </section>
       </div>
     </main>
@@ -141,15 +141,15 @@ function DashboardScenarioCard() {
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
         <div className="cm-card-muted rounded-2xl p-3">
           <p className="text-sm font-black text-[#061b31]">가격 바꾸기 전</p>
-          <p className="mt-1 text-[13px] leading-5 text-[#64748d]">아메리카노 가격을 100원씩 움직여 월 이익 변화를 봅니다.</p>
+          <p className="mt-1 text-[13px] leading-5 text-[var(--cm-muted)]">아메리카노 가격을 100원씩 움직여 월 이익 변화를 봅니다.</p>
         </div>
         <div className="cm-card-muted rounded-2xl p-3">
           <p className="text-sm font-black text-[#061b31]">판매량 바뀔 때</p>
-          <p className="mt-1 text-[13px] leading-5 text-[#64748d]">행사, 날씨, 시즌 때문에 판매량이 달라질 때 다시 봅니다.</p>
+          <p className="mt-1 text-[13px] leading-5 text-[var(--cm-muted)]">행사, 날씨, 시즌 때문에 판매량이 달라질 때 다시 봅니다.</p>
         </div>
         <div className="cm-card-muted rounded-2xl p-3">
           <p className="text-sm font-black text-[#061b31]">월세·인건비 오를 때</p>
-          <p className="mt-1 text-[13px] leading-5 text-[#64748d]">월 운영비를 움직여 메뉴별 부담이 얼마나 늘어나는지 확인합니다.</p>
+          <p className="mt-1 text-[13px] leading-5 text-[var(--cm-muted)]">월 운영비를 움직여 메뉴별 부담이 얼마나 늘어나는지 확인합니다.</p>
         </div>
       </div>
     </section>
@@ -173,7 +173,7 @@ function MenuSliderCard({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-lg font-semibold tracking-[-0.03em] text-[#1d1d1f]">{menu.menuName}</p>
-          <p className="mt-1 text-xs font-semibold text-[#64748d]">판매가와 월 판매량만 먼저 조정</p>
+          <p className="mt-1 text-xs font-semibold text-[var(--cm-muted)]">판매가와 월 판매량만 먼저 조정</p>
         </div>
         <p className="rounded-full bg-white px-3 py-1 text-sm font-bold text-[#0b2545] shadow-sm">{formatWon(menu.salePrice)}</p>
       </div>
@@ -189,7 +189,7 @@ function MenuSliderCard({
           className="mt-3 w-full accent-[#0071e3]"
         />
       </label>
-      <div className="mt-1 flex justify-between text-xs font-semibold text-[#86868b]">
+      <div className="mt-1 flex justify-between text-xs font-semibold text-[var(--cm-muted)]">
         <span>{formatWon(priceMin)}</span>
         <span>{formatWon(priceMax)}</span>
       </div>
@@ -205,7 +205,7 @@ function MenuSliderCard({
           className="mt-3 w-full accent-[#0071e3]"
         />
       </label>
-      <div className="mt-1 flex justify-between text-xs font-semibold text-[#86868b]">
+      <div className="mt-1 flex justify-between text-xs font-semibold text-[var(--cm-muted)]">
         <span>{formatNumber(volumeMin)}개</span>
         <span>{formatNumber(volumeMax)}개</span>
       </div>
@@ -234,10 +234,10 @@ function ProfitCurve({ menus }: { menus: ReturnType<typeof calculateMultiMenuMar
           <p className="text-sm font-bold text-[#0b2545]">이익 그래프</p>
           <h2 className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.045em] text-[#1d1d1f] sm:text-3xl">어떤 메뉴가 더 남는지 정렬해서 봅니다</h2>
         </div>
-        <p className="text-sm font-semibold text-[#64748d]">월 이익 내림차순 · 파레토 80% 보조선</p>
+        <p className="text-sm font-semibold text-[var(--cm-muted)]">월 이익 내림차순 · 파레토 80% 보조선</p>
       </div>
       <div className="mt-6 rounded-3xl border border-[#e5edf5] bg-[#f8fafc] p-4" role="img" aria-label="메뉴별 월 이익 정렬 가로막대와 파레토 누적 비중">
-        <div className="mb-4 flex items-center justify-between gap-3 text-xs font-black text-[#64748d]">
+        <div className="mb-4 flex items-center justify-between gap-3 text-xs font-black text-[var(--cm-muted)]">
           <span>정렬 가로막대</span>
           <span>파레토 80%</span>
         </div>
@@ -248,7 +248,7 @@ function ProfitCurve({ menus }: { menus: ReturnType<typeof calculateMultiMenuMar
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-black text-[#1B2230]">{menu.menuName}</p>
-                    <p className="mt-1 text-xs font-bold text-[#64748d]">누적 {cumulativePercent}% · 잔당 {formatWon(menu.profitPerCup)}</p>
+                    <p className="mt-1 text-xs font-bold text-[var(--cm-muted)]">누적 {cumulativePercent}% · 잔당 {formatWon(menu.profitPerCup)}</p>
                   </div>
                   <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${diagnosis.className}`}>{diagnosis.label}</span>
                 </div>
@@ -286,9 +286,9 @@ function MenuComparison({ menus }: { menus: ReturnType<typeof calculateMultiMenu
     <div className="grid gap-4 md:grid-cols-2">
       {menus.map((menu) => (
         <article key={menu.id} className="cm-card rounded-[28px] p-5">
-          <p className="text-sm font-bold text-[#64748d]">{menu.menuName}</p>
+          <p className="text-sm font-bold text-[var(--cm-muted)]">{menu.menuName}</p>
           <p className="mt-2 text-2xl font-semibold leading-tight tracking-[-0.045em] text-[#1d1d1f] sm:text-3xl">{formatWon(menu.profitPerCup)}</p>
-          <p className="mt-1 text-sm font-semibold text-[#64748d]">하나 팔 때 남는 돈</p>
+          <p className="mt-1 text-sm font-semibold text-[var(--cm-muted)]">하나 팔 때 남는 돈</p>
           <div className="mt-5 grid grid-cols-2 gap-3">
             <LightMetric label="판매가" value={formatWon(menu.salePrice)} />
             <LightMetric label="하나당 원가" value={formatWon(menu.totalCostPerCup)} />
@@ -304,7 +304,7 @@ function MenuComparison({ menus }: { menus: ReturnType<typeof calculateMultiMenu
 function DarkMetric({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className={`rounded-2xl p-3 sm:p-4 ${highlight ? "bg-white text-[#061b31]" : "bg-white/10 text-white"}`}>
-      <p className={`text-xs font-bold ${highlight ? "text-[#64748d]" : "text-white/60"}`}>{label}</p>
+      <p className={`text-xs font-bold ${highlight ? "text-[var(--cm-muted)]" : "text-white/60"}`}>{label}</p>
       <p className="mt-2 text-xl font-semibold tracking-[-0.045em] sm:text-2xl">{value}</p>
     </div>
   );
@@ -313,7 +313,7 @@ function DarkMetric({ label, value, highlight = false }: { label: string; value:
 function LightMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-[#e7edf5] bg-[#f8fafc] p-4">
-      <p className="text-xs font-bold text-[#86868b]">{label}</p>
+      <p className="text-xs font-bold text-[var(--cm-muted)]">{label}</p>
       <p className="mt-1 text-lg font-semibold tracking-[-0.035em] text-[#1d1d1f]">{value}</p>
     </div>
   );

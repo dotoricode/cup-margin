@@ -139,7 +139,7 @@ label {
   transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-:where(a, button, select, summary) {
+:where(a, button, input:not([type="range"]), select, summary) {
   min-height: var(--tap-min);
 }
 
@@ -153,6 +153,7 @@ label {
 }
 
 input[type="range"] {
+  min-height: var(--tap-min);
   accent-color: var(--cm-accent);
 }
 

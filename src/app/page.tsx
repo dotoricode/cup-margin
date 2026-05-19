@@ -1,5 +1,5 @@
-import { CupMarginLanding } from "@/features/cup-margin/ui/CupMarginLanding";
+import { CupMarginHome } from "@/features/cup-margin/ui/CupMarginHome";
 
 export default function Home() {
-  return <CupMarginLanding />;
+  return <CupMarginHome />;
 }

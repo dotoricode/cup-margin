@@ -8,7 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run build",
+    "lhci": "npm run lhci:mobile && npm run lhci:desktop",
+    "lhci:mobile": "cross-env LHCI_FORM_FACTOR=mobile node reports/cup-margin-audit/run-lhci.mjs",
+    "lhci:desktop": "cross-env LHCI_FORM_FACTOR=desktop node reports/cup-margin-audit/run-lhci.mjs",
+    "a11y": "npm run a11y:axe && npm run a11y:pa11y",
+    "a11y:axe": "node reports/cup-margin-audit/run-axe.mjs",
+    "a11y:pa11y": "node reports/cup-margin-audit/run-pa11y.mjs"
   },
   "dependencies": {
     "next": "16.2.6",
@@ -17,12 +24,17 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.15.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "axe-core": "^4.11.4",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "pa11y": "^9.1.1",
+    "playwright": "^1.60.0",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.6"

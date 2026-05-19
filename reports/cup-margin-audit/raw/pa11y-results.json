@@ -1,0 +1,14 @@
+[
+  {
+    "id": "landing",
+    "url": "http://127.0.0.1:3010/",
+    "allowedIssues": 0,
+    "issues": []
+  },
+  {
+    "id": "calculator",
+    "url": "http://127.0.0.1:3010/calculator",
+    "allowedIssues": 0,
+    "issues": []
+  }
+]

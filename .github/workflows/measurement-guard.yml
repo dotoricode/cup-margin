@@ -1,0 +1,55 @@
+name: Measurement Guard
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  measurement-guard:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - name: Start Next server
+        run: |
+          npm run start -- --hostname 127.0.0.1 --port 3000 > /tmp/next.log 2>&1 &
+          for i in {1..60}; do
+            if curl -fsS http://127.0.0.1:3000 >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/next.log
+          exit 1
+
+      - name: Lighthouse CI
+        run: npx cross-env BASE_URL=http://127.0.0.1:3000 npm run lhci
+
+      - name: Accessibility
+        run: npx cross-env BASE_URL=http://127.0.0.1:3000 npm run a11y
+
+      - name: Upload measurement artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: measurement-results
+          path: |
+            reports/cup-margin-audit/raw/*.json
+            reports/cup-margin-audit/lhci/

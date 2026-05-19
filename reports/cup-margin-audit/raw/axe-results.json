@@ -2,184 +2,29 @@
   {
     "id": "landing",
     "viewport": "m360",
-    "url": "https://cup-margin.vercel.app",
-    "violations": [
-      {
-        "id": "color-contrast",
-        "impact": "serious",
-        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
-        "help": "Elements must meet minimum color contrast ratio thresholds",
-        "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=axeAPI",
-        "nodes": [
-          {
-            "target": [
-              ".bg-\\[\\#f5f8fb\\].items-center.justify-between:nth-child(1) > span:nth-child(1)"
-            ],
-            "html": "<span class=\"text-sm font-bold text-[#64748d]\">메뉴명</span>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.45 (foreground color: #64748d, background color: #f5f8fb, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#f5f8fb\\].items-center.justify-between:nth-child(2) > span:nth-child(1)"
-            ],
-            "html": "<span class=\"text-sm font-bold text-[#64748d]\">판매가</span>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.45 (foreground color: #64748d, background color: #f5f8fb, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#f5f8fb\\].items-center.justify-between:nth-child(3) > span:nth-child(1)"
-            ],
-            "html": "<span class=\"text-sm font-bold text-[#64748d]\">한 잔 원가</span>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.45 (foreground color: #64748d, background color: #f5f8fb, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#f5f8fb\\].items-center.justify-between:nth-child(4) > span:nth-child(1)"
-            ],
-            "html": "<span class=\"text-sm font-bold text-[#64748d]\">월 판매량</span>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.45 (foreground color: #64748d, background color: #f5f8fb, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#f5f8fb\\].items-center.justify-between:nth-child(5) > span:nth-child(1)"
-            ],
-            "html": "<span class=\"text-sm font-bold text-[#64748d]\">월 고정비</span>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.45 (foreground color: #64748d, background color: #f5f8fb, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".sm\\:grid-cols-3 > .bg-\\[\\#f0f0ff\\].p-4.rounded-xl > .text-xs.text-\\[\\#64748d\\].font-bold"
-            ],
-            "html": "<p class=\"text-xs font-bold text-[#64748d]\">남는 돈</p>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.2 (foreground color: #64748d, background color: #f0f0ff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
-          }
-        ]
-      }
-    ]
+    "url": "http://127.0.0.1:3010/",
+    "allowedViolations": 0,
+    "violations": []
   },
   {
     "id": "landing",
     "viewport": "d1440",
-    "url": "https://cup-margin.vercel.app",
-    "violations": [
-      {
-        "id": "color-contrast",
-        "impact": "serious",
-        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
-        "help": "Elements must meet minimum color contrast ratio thresholds",
-        "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=axeAPI",
-        "nodes": [
-          {
-            "target": [
-              ".bg-\\[\\#f5f8fb\\].items-center.justify-between:nth-child(1) > span:nth-child(1)"
-            ],
-            "html": "<span class=\"text-sm font-bold text-[#64748d]\">메뉴명</span>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.45 (foreground color: #64748d, background color: #f5f8fb, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#f5f8fb\\].items-center.justify-between:nth-child(2) > span:nth-child(1)"
-            ],
-            "html": "<span class=\"text-sm font-bold text-[#64748d]\">판매가</span>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.45 (foreground color: #64748d, background color: #f5f8fb, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#f5f8fb\\].items-center.justify-between:nth-child(3) > span:nth-child(1)"
-            ],
-            "html": "<span class=\"text-sm font-bold text-[#64748d]\">한 잔 원가</span>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.45 (foreground color: #64748d, background color: #f5f8fb, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#f5f8fb\\].items-center.justify-between:nth-child(4) > span:nth-child(1)"
-            ],
-            "html": "<span class=\"text-sm font-bold text-[#64748d]\">월 판매량</span>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.45 (foreground color: #64748d, background color: #f5f8fb, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#f5f8fb\\].items-center.justify-between:nth-child(5) > span:nth-child(1)"
-            ],
-            "html": "<span class=\"text-sm font-bold text-[#64748d]\">월 고정비</span>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.45 (foreground color: #64748d, background color: #f5f8fb, font size: 10.5pt (14px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".sm\\:grid-cols-3 > .bg-\\[\\#f0f0ff\\].p-4.rounded-xl > .text-xs.text-\\[\\#64748d\\].font-bold"
-            ],
-            "html": "<p class=\"text-xs font-bold text-[#64748d]\">남는 돈</p>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.2 (foreground color: #64748d, background color: #f0f0ff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
-          }
-        ]
-      }
-    ]
+    "url": "http://127.0.0.1:3010/",
+    "allowedViolations": 0,
+    "violations": []
   },
   {
     "id": "calculator",
     "viewport": "m360",
-    "url": "https://cup-margin.vercel.app/calculator",
-    "violations": [
-      {
-        "id": "color-contrast",
-        "impact": "serious",
-        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
-        "help": "Elements must meet minimum color contrast ratio thresholds",
-        "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=axeAPI",
-        "nodes": [
-          {
-            "target": [
-              ".mt-6 > .bg-\\[\\#f0f0ff\\].rounded-xl.p-4:nth-child(4) > .font-bold.text-\\[\\#64748d\\].text-xs"
-            ],
-            "html": "<p class=\"text-xs font-bold text-[#64748d]\">월 예상 이익</p>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.2 (foreground color: #64748d, background color: #f0f0ff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#f0f0ff\\].rounded-xl.p-4:nth-child(6) > .font-bold.text-\\[\\#64748d\\].text-xs"
-            ],
-            "html": "<p class=\"text-xs font-bold text-[#64748d]\">가게 전체 마진율</p>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.2 (foreground color: #64748d, background color: #f0f0ff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#eef5fb\\] > .text-\\[11px\\].font-black.text-\\[\\#64748d\\]"
-            ],
-            "html": "<p class=\"text-[11px] font-black text-[#64748d]\">한 잔 이익</p>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.31 (foreground color: #64748d, background color: #eef5fb, font size: 8.3pt (11px), font weight: bold). Expected contrast ratio of 4.5:1"
-          }
-        ]
-      }
-    ]
+    "url": "http://127.0.0.1:3010/calculator",
+    "allowedViolations": 0,
+    "violations": []
   },
   {
     "id": "calculator",
     "viewport": "d1440",
-    "url": "https://cup-margin.vercel.app/calculator",
-    "violations": [
-      {
-        "id": "color-contrast",
-        "impact": "serious",
-        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
-        "help": "Elements must meet minimum color contrast ratio thresholds",
-        "helpUrl": "https://dequeuniversity.com/rules/axe/4.11/color-contrast?application=axeAPI",
-        "nodes": [
-          {
-            "target": [
-              ".mt-6 > .bg-\\[\\#f0f0ff\\].rounded-xl.p-4:nth-child(4) > .font-bold.text-\\[\\#64748d\\].text-xs"
-            ],
-            "html": "<p class=\"text-xs font-bold text-[#64748d]\">월 예상 이익</p>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.2 (foreground color: #64748d, background color: #f0f0ff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
-          },
-          {
-            "target": [
-              ".bg-\\[\\#f0f0ff\\].rounded-xl.p-4:nth-child(6) > .font-bold.text-\\[\\#64748d\\].text-xs"
-            ],
-            "html": "<p class=\"text-xs font-bold text-[#64748d]\">가게 전체 마진율</p>",
-            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.2 (foreground color: #64748d, background color: #f0f0ff, font size: 9.0pt (12px), font weight: bold). Expected contrast ratio of 4.5:1"
-          }
-        ]
-      }
-    ]
+    "url": "http://127.0.0.1:3010/calculator",
+    "allowedViolations": 0,
+    "violations": []
   }
 ]
