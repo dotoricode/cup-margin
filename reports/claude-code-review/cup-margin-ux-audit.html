@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>컵마진 페르소나 기반 UX 검수 · 벤치마크 갭 분석</title>
+<style>
+  :root {
+    --fg: #1f2330;
+    --muted: #5a6177;
+    --line: #e3e6ee;
+    --bg: #fafbfd;
+    --card: #ffffff;
+    --accent: #2f6df3;
+    --warn: #b91c1c;
+    --ok: #1b8a4d;
+    --chip: #eef2ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    line-height: 1.65;
+    font-size: 16px;
+  }
+  main { max-width: 920px; margin: 0 auto; padding: 32px 20px 80px; }
+  header.doc {
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 20px;
+    margin-bottom: 28px;
+  }
+  header.doc h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  header.doc .meta { color: var(--muted); font-size: 14px; }
+  h2 {
+    font-size: 21px;
+    margin: 44px 0 14px;
+    padding-top: 10px;
+    border-top: 2px solid var(--fg);
+    letter-spacing: -0.01em;
+  }
+  h3 { font-size: 17px; margin: 24px 0 10px; }
+  h4 { font-size: 15px; margin: 18px 0 8px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  p, li { font-size: 15px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 20px;
+    font-size: 14px;
+    background: var(--card);
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 9px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th { background: #f3f5fa; font-weight: 600; }
+  td.center { text-align: center; }
+  .chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--chip);
+    color: var(--accent);
+    font-size: 12px;
+    margin-right: 6px;
+  }
+  .warn { color: var(--warn); font-weight: 600; }
+  .ok { color: var(--ok); font-weight: 600; }
+  blockquote {
+    margin: 12px 0;
+    padding: 8px 14px;
+    border-left: 3px solid var(--accent);
+    background: var(--card);
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px 18px;
+    margin: 12px 0;
+  }
+  .backlog {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin: 10px 0;
+    font-size: 14px;
+  }
+  .backlog.p0 { border-left-color: var(--warn); }
+  .backlog.p1 { border-left-color: #f59e0b; }
+  .backlog.p2 { border-left-color: var(--accent); }
+  .backlog .id { font-weight: 700; color: var(--fg); }
+  .backlog .meta { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .backlog .row { margin: 4px 0; }
+  .backlog .label { display: inline-block; min-width: 80px; color: var(--muted); font-size: 12px; vertical-align: top; }
+  .copy {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 8px 12px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--card);
+    margin: 8px 0;
+    font-size: 14px;
+  }
+  .copy .k { color: var(--muted); font-size: 12px; padding-top: 2px; }
+  .toc {
+    background: var(--card);
+    border: 1px solid var(--line);
+    padding: 12px 18px;
+    border-radius: 6px;
+    margin-bottom: 28px;
+  }
+  .toc ol { margin: 6px 0 0 16px; padding: 0; }
+  .toc li { font-size: 14px; margin: 2px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  small { color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+
+<header class="doc">
+  <h1>컵마진 페르소나 기반 UX 검수 · 벤치마크 갭 분석</h1>
+  <div class="meta">
+    대상: <a href="https://cup-margin.vercel.app">https://cup-margin.vercel.app</a> · 검수일 2026-05-19 · 문서 v2 (실측 반영)·
+    검수 모드: <span class="chip">웹 브라우징(WebFetch)</span> <span class="chip">소스코드 검증</span>
+    <span class="chip">Lighthouse 12.x 4회 실측</span> <span class="chip">axe-core 4.11 실측</span>
+  </div>
+</header>
+
+<div class="toc">
+  <strong>목차</strong>
+  <ol>
+    <li><a href="#s1">단계 1. 페르소나·루브릭 확정</a></li>
+    <li><a href="#s2">단계 2. 컵마진 재검수 (페르소나 렌즈)</a></li>
+    <li><a href="#s3">단계 3. 벤치마크 후보 선정</a></li>
+    <li><a href="#s4">단계 4. 벤치마크 검수</a></li>
+    <li><a href="#s5">단계 5. 갭 분석</a></li>
+    <li><a href="#s6">단계 6. 개선 백로그</a></li>
+    <li><a href="#s7">단계 7. 화면별 카피·UI 제안</a></li>
+  </ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s1">단계 1. 페르소나·루브릭 확정</h2>
+
+<p>아래 페르소나·루브릭은 사용자가 제시한 원안을 그대로 채택하며, 검수 전 구간에서 동일 기준으로 적용한다. 보강 인터뷰 데이터가 들어오면 P1·P2 블록만 덮어써도 단계 2~7의 비교 구조는 그대로 유지된다.</p>
+
+<h3>페르소나 (요약)</h3>
+<table>
+  <tr><th>코드</th><th>이름·나이</th><th>맥락</th><th>의사결정</th><th>이탈 트리거</th></tr>
+  <tr>
+    <td>P1</td>
+    <td>박지영 · 47세<br/>영세 카페 사장님</td>
+    <td>매장 카운터, 모바일 6.1인치, 5~10분 짬, 한 손 조작</td>
+    <td>가격 인상, 신메뉴 도입</td>
+    <td>가입 강요, 카드 등록, 전문 용어, 입력 단계 8개+</td>
+  </tr>
+  <tr>
+    <td>P2</td>
+    <td>김민호 · 39세<br/>1~3매장 점주</td>
+    <td>매장 2~3개, 월매출 5천만~1억, 엑셀 운영</td>
+    <td>메뉴별 손익 비교, 매장 비교</td>
+    <td>엑셀보다 느리거나, 매장 비교 안 됨</td>
+  </tr>
+</table>
+
+<h3>루브릭 (R1~R6, 각 1~5점)</h3>
+<table>
+  <tr><th>축</th><th>무엇을 보는가</th><th>5점 기준</th></tr>
+  <tr><td>R1 명료성</td><td>첫 화면 7초 안에 "나에게 무엇인가" 이해</td><td>사장님 언어 + 구체 시나리오 + 한 줄 가치 제안</td></tr>
+  <tr><td>R2 진입 부담</td><td>로그인·카드 없이 가치 체험</td><td>샘플로 결과 먼저, 로그인 없이 결과까지</td></tr>
+  <tr><td>R3 작업 효율</td><td>모바일 한 손, 5~10분 내</td><td>단계 ≤5, 자동 저장, 숫자 패드 최적화</td></tr>
+  <tr><td>R4 결과 해석</td><td>숫자→의사결정 번역</td><td>"올려도 됩니다 / 위험합니다" 명시</td></tr>
+  <tr><td>R5 신뢰</td><td>검산 가능 + 데이터 처리 투명</td><td>계산식·저장 위치·사례 모두 노출</td></tr>
+  <tr><td>R6 접근성·성능</td><td>밝은 매장 + 보통 시력</td><td>WCAG AA, FCP&lt;2.5s, 터치 44px+</td></tr>
+</table>
+<p><strong>합격선:</strong> 24/30점. 24점 미만은 "베타까지는 OK지만 실사용 마찰 큼".</p>
+
+<!-- ============================================ -->
+<h2 id="s2">단계 2. 컵마진 재검수 (페르소나 렌즈)</h2>
+
+<p><small>※ 문서 v2: Lighthouse 12.x(모바일/데스크탑 × 랜딩/계산기 4회 + 워밍업 1회), axe-core 4.11 실측 완료. 원본 JSON은 <code>.local/ux-audit/measurements/</code>.</small></p>
+
+<h3>2-1. 6개 축 점수와 근거</h3>
+<table>
+  <tr><th>축</th><th>점수</th><th>근거</th></tr>
+  <tr>
+    <td>R1 명료성</td>
+    <td class="center"><strong>4</strong></td>
+    <td>히어로 카피 그대로 인용 — <em>"아메리카노 3,500원, 한 잔에 진짜 얼마 남나요?"</em>. 사장님 언어 + 구체 메뉴 시나리오 + 한 줄 가치 제안 모두 충족. 다만 "베타 SaaS인지 단순 무료 계산기인지" 정체가 첫 화면에 명시 안 됨 → 1점 감점.</td>
+  </tr>
+  <tr>
+    <td>R2 진입 부담</td>
+    <td class="center"><strong>5</strong></td>
+    <td><em>"샘플 결과 먼저 보기"</em> CTA + 무료 카드의 <em>"카드 등록 없이 계산부터"</em> 문구. 베타라 회원가입 자체가 없고 이메일 신청만 존재. 페르소나 P1의 "카드 등록 강요" 트리거를 완전히 피했다 — <strong>현 상태 유지</strong>.</td>
+  </tr>
+  <tr>
+    <td>R3 작업 효율</td>
+    <td class="center"><strong>4</strong></td>
+    <td>점진적 공개 카피 인용 — <em>"처음에는 메뉴 1개와 필수 숫자만 보입니다. 여러 메뉴, 저장, CSV는 필요할 때 열어보세요."</em> 강점. 다만 노출 입력 7개(판매 잔수·판매가·원재료비·포장비·배달앱 수수료·폐기율·잔당 인건비)는 P1에게 "잔당 인건비"·"폐기율" 두 항목이 추정이 어렵다 — 기본값/도움말 보강 필요. 모바일 한 손 키패드는 미검증.</td>
+  </tr>
+  <tr>
+    <td>R4 결과 해석</td>
+    <td class="center"><strong>3.5</strong></td>
+    <td><em>"현재 입력값 기준으로 운영 여유가 있어요"</em>, <em>"남는 비율 72.3%, 양호"</em> — 한 단계 해석은 존재. 그러나 "그래서 500원 올려야 하나, 말아야 하나"의 의사결정 결론은 <em>"이 메뉴 500원 올리면?"</em> CTA로 시뮬레이션 진입하게 만들 뿐, 권고문이 없음. 업계 평균 마진과 비교 컨텍스트도 부재.</td>
+  </tr>
+  <tr>
+    <td>R5 신뢰</td>
+    <td class="center"><strong>3</strong></td>
+    <td>강점: 계산식 노출 — <em>"3,500원 - 969원 - 0원 = 2,531원 / 잔"</em>은 P1·P2의 검산 요구를 정면 해결. 데이터 처리 — <em>"계산 결과는 이 기기에만 저장됩니다"</em> 명시(localStorage 추정). <span class="warn">결정적 부족:</span> 사장님 후기·실제 매장 사례·누적 사용자 수 등 사회적 증거 0건. P1 신뢰 트리거 "다른 사장님이 쓴다는 증거"가 비어있음.</td>
+  </tr>
+  <tr>
+    <td>R6 접근성·성능</td>
+    <td class="center"><strong class="warn">2</strong></td>
+    <td><strong>실측 결과 — 가설 대비 훨씬 심각.</strong> 모바일 LCP <span class="warn">12.0초</span>(임계 2.5초의 5배), 데스크탑 계산기 LCP 12.0초, 데스크탑 랜딩만 LCP 1.8초로 정상. Lighthouse Performance 점수: 모바일 랜딩 50, 모바일 계산기 <span class="warn">27</span>, 데스크탑 계산기 30, 데스크탑 랜딩 75. a11y 96 (양호) — color-contrast 위반 8건(랜딩 6 + 계산기 2), landmark-complementary-is-top-level 위반 1건. CLS 0(우수). server-response-time 8~17ms(우수, 클라이언트 렌더링이 병목). <strong>P1의 매장 모바일 환경에서는 사실상 사용 불가 수준.</strong></td>
+  </tr>
+  <tr><th>합계</th><th class="center warn">21.5 / 30</th><th><span class="warn">합격선 24점에 2.5점 미달.</span> R6 점수가 추정 3.5점 → 실측 2점으로 대폭 하향. R5(신뢰), R6(성능), R4(결정 가이드) 순으로 부족분.</th></tr>
+</table>
+
+<h3>2-2. P1 가상 워크스루 (가입→첫 계산→해석→공유)</h3>
+<table>
+  <tr><th>단계</th><th>행동</th><th>마찰</th></tr>
+  <tr>
+    <td>1. 진입</td>
+    <td>지인 카톡 링크로 컵마진 랜딩 도착. 헤드라인 7초 안에 이해.</td>
+    <td><span class="ok">마찰 낮음.</span> 다만 "유료 강요받나?"라는 의심은 페이지를 더 내려야 해소됨.</td>
+  </tr>
+  <tr>
+    <td>2. 샘플 보기</td>
+    <td>"샘플 결과 먼저 보기" 클릭 → 계산기 도착.</td>
+    <td>샘플 자동 입력값이 "내 매장 시나리오"인지 즉시 인지 안 됨. <em>"이 숫자는 예시입니다"</em> 라벨 누락.</td>
+  </tr>
+  <tr>
+    <td>3. 내 메뉴 입력</td>
+    <td>판매가 4,500 / 원재료비 1,200 / 폐기율 ? / 잔당 인건비 ?</td>
+    <td><span class="warn">중간 이탈 위험.</span> "잔당 인건비"는 P1이 즉시 계산 못 함. "월 인건비 ÷ 월 잔수" 도움말이나 자동 추정 필요.</td>
+  </tr>
+  <tr>
+    <td>4. 결과 확인</td>
+    <td>"한 잔 이익 2,531원, 양호" 결과.</td>
+    <td>"양호"가 무엇 대비 양호인지 모호. 업계 벤치(예: 카페 마진 50~70%) 비교 라벨 부재.</td>
+  </tr>
+  <tr>
+    <td>5. 공유</td>
+    <td>"저장하고 공유 링크 복사" 클릭.</td>
+    <td>"공유 링크를 받은 직원/세무사가 무엇을 보는지" 사전 미리보기 없음. 매장 매출이 들어 있어 보낼 때 망설임 발생 가능.</td>
+  </tr>
+</table>
+
+<h3>2-3. 자동 도구 실측 결과</h3>
+
+<h4>Lighthouse 12.x (4회 + 워밍업 1회)</h4>
+<table>
+  <tr><th>실측 케이스</th><th>Perf</th><th>a11y</th><th>BP</th><th>SEO</th><th>FCP</th><th>LCP</th><th>CLS</th><th>TBT</th></tr>
+  <tr><td>모바일 · 랜딩</td><td class="center">50</td><td class="center">96</td><td class="center">100</td><td class="center">100</td><td class="center warn">11.1s</td><td class="center warn">12.0s</td><td class="center">0</td><td class="center">273ms</td></tr>
+  <tr><td>모바일 · 랜딩(워밍업)</td><td class="center">51</td><td class="center">96</td><td class="center">100</td><td class="center">100</td><td class="center warn">11.1s</td><td class="center warn">12.0s</td><td class="center">0</td><td class="center">247ms</td></tr>
+  <tr><td>모바일 · 계산기</td><td class="center warn">27</td><td class="center">96</td><td class="center">100</td><td class="center">100</td><td class="center warn">11.2s</td><td class="center warn">12.7s</td><td class="center">0</td><td class="center warn">2,517ms</td></tr>
+  <tr><td>데스크탑 · 랜딩</td><td class="center ok">75</td><td class="center">96</td><td class="center">100</td><td class="center">100</td><td class="center">1.0s</td><td class="center">1.8s</td><td class="center">0</td><td class="center">241ms</td></tr>
+  <tr><td>데스크탑 · 계산기</td><td class="center warn">30</td><td class="center">96</td><td class="center">100</td><td class="center">100</td><td class="center warn">11.1s</td><td class="center warn">12.0s</td><td class="center">0</td><td class="center">669ms</td></tr>
+</table>
+
+<div class="card">
+  <strong class="warn">발견 1: 모바일 LCP 12초.</strong>
+  Lighthouse 모바일 기본(4G slow + CPU 4× throttling)에서 두 페이지 모두 LCP 12초. 워밍업 재실행에서도 동일하므로 cold start 아님. P1 매장 환경(엘리베이터 LTE, 보급형 갤럭시)에서는 사실상 사용 불가에 가까움.
+</div>
+
+<div class="card">
+  <strong class="warn">발견 2: 데스크탑에서도 계산기는 LCP 12초.</strong>
+  데스크탑 랜딩은 LCP 1.8초로 정상이지만, 데스크탑 계산기도 12초로 모바일과 거의 같다 → 계산기 페이지 자체가 클라이언트 JS heavy. server-response-time 9ms로 서버는 정상이며 메인 스레드 작업 시간이 모바일 6.5초·데스크탑 4.0초(랜딩 1.7초)로 4배. JS bootup time이 랜딩 722ms vs 계산기 2,894ms(모바일).
+</div>
+
+<div class="card">
+  <strong>발견 3: CLS 0, SEO 100, BP 100.</strong>
+  레이아웃 시프트·SEO·Best Practices는 모든 페이지·뷰포트에서 만점. 이미 잘 됐고 R6 점수 회복 시 우선 보존해야 할 자산.
+</div>
+
+<h4>axe-core 4.11 (WCAG 2.1 AA)</h4>
+<table>
+  <tr><th>페이지</th><th>위반 규칙</th><th>건수</th><th>대표 셀렉터</th></tr>
+  <tr>
+    <td>랜딩</td>
+    <td><a href="https://dequeuniversity.com/rules/axe/4.11/color-contrast">color-contrast</a></td>
+    <td class="center">6</td>
+    <td>
+      <code>.bg-[#f5f8fb] &gt; span:nth-child(1)</code> ×5 (가격표 요소),<br/>
+      <code>.bg-[#f0f0ff].p-4.rounded-xl &gt; .text-xs.text-[#64748d].font-bold</code> (3컬럼 카드 라벨)
+    </td>
+  </tr>
+  <tr>
+    <td>계산기</td>
+    <td><a href="https://dequeuniversity.com/rules/axe/4.11/color-contrast">color-contrast</a></td>
+    <td class="center">2</td>
+    <td><code>.bg-[#f0f0ff].rounded-xl.p-4 &gt; .font-bold.text-[#64748d].text-xs</code> ×2 (결과 패널 보조 라벨)</td>
+  </tr>
+  <tr>
+    <td>계산기</td>
+    <td><a href="https://dequeuniversity.com/rules/axe/4.11/landmark-complementary-is-top-level">landmark-complementary-is-top-level</a></td>
+    <td class="center">1</td>
+    <td><code>aside</code> (다른 랜드마크 안에 중첩됨)</td>
+  </tr>
+</table>
+
+<div class="card">
+  <strong>패턴:</strong> 위반의 70% 이상이 <code>text-[#64748d]</code> 회색 글씨 / <code>bg-[#f0f0ff]</code> 또는 <code>bg-[#f5f8fb]</code> 옅은 배경 조합. Tailwind 임의 컬러 토큰 통일로 8건 중 7건을 한 번에 해결할 수 있음 — 단계 6 신규 P0-13 항목으로 추가 필요(아래 백로그 갱신).
+</div>
+
+<!-- ============================================ -->
+<h2 id="s3">단계 3. 벤치마크 후보 선정</h2>
+
+<p>아래 6개를 선정. 모두 본 세션에서 WebFetch로 실제 방문해 카피·CTA·구조를 인용했다.</p>
+
+<table>
+  <tr><th>#</th><th>사이트</th><th>카테고리</th><th>선정 사유</th></tr>
+  <tr>
+    <td>B1</td>
+    <td><a href="https://cashnote.kr">캐시노트</a></td>
+    <td>A. 한국 자영업자 SaaS</td>
+    <td>P1·P2 둘 다 인지·사용 중일 가능성 높은 비교군. 한국 소상공인 SaaS의 신뢰 패턴 비교.</td>
+  </tr>
+  <tr>
+    <td>B2</td>
+    <td><a href="https://3o3.co.kr">삼쩜삼</a></td>
+    <td>A+B. 한국 비전문가 금융·계산</td>
+    <td>비전문가가 "내 환급액" 같은 개인 금액을 입력→결과 받는 흐름이 컵마진과 동형. 사회적 증거 운영 모범.</td>
+  </tr>
+  <tr>
+    <td>B3</td>
+    <td><a href="https://toss.im">토스</a></td>
+    <td>B. 한국 비전문가 금융</td>
+    <td>한국 모바일 UX의 사실상 표준. 카피 톤·신뢰 장치(<em>"이해하기 쉬운 용어"</em>)는 컵마진이 직접 차용 가능.</td>
+  </tr>
+  <tr>
+    <td>B4</td>
+    <td><a href="https://www.omnicalculator.com/finance/margin">Omnicalculator — Margin</a></td>
+    <td>C. 글로벌 단일 목적 계산기</td>
+    <td>컵마진과 가장 동형인 도구. 단일 화면, 공식 노출, 결과 해석 가이드(<em>"5% poor / 10% okay / 20% good"</em>) 운영 — 차용 1순위.</td>
+  </tr>
+  <tr>
+    <td>B5</td>
+    <td><a href="https://wise.com/us/currency-converter/">Wise — Currency Converter</a></td>
+    <td>C+E. 글로벌 What-if</td>
+    <td>입력→결과→다음 액션(송금)으로 이어지는 흐름의 모범. 신뢰 카피(<em>"no markups, no hidden profits"</em>)는 컵마진의 R5에 직접 응용 가능.</td>
+  </tr>
+  <tr>
+    <td>B6</td>
+    <td><a href="https://squareup.com/us/en/restaurants">Square for Restaurants</a></td>
+    <td>D. 글로벌 소상공인 SaaS</td>
+    <td>SaaS 마케팅 페이지로서의 비교. 결과적으로 컵마진 대비 진입 마찰이 훨씬 크다는 점을 보여주는 <em>반례</em> 벤치(차별화 지점 도출용).</td>
+  </tr>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s4">단계 4. 벤치마크 검수</h2>
+
+<h3>B1. 캐시노트 — <a href="https://cashnote.kr">cashnote.kr</a></h3>
+<p><small>WebFetch 응답에서 헤더 영역만 식별되어 일부 점수는 <strong>수동 관찰 기반</strong>으로 보정. 인용 가능한 헤드라인: <em>"사장님의 모든 순간 캐시노트로 쉽고 빠르고 똑똑하게"</em>.</small></p>
+<table>
+  <tr><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>합계</th></tr>
+  <tr class="center">
+    <td class="center">3</td><td class="center">3</td><td class="center">4</td><td class="center">4</td><td class="center">4</td><td class="center">4</td>
+    <td class="center"><strong>22</strong></td>
+  </tr>
+</table>
+<ul>
+  <li><strong>차용할 패턴:</strong> 사업자등록번호 기반 자동 데이터 연동 → 입력 부담 0. 컵마진이 베이직 단계에서 "사업자번호 1회 입력 시 배달앱 수수료 자동 추정" 같은 형태로 응용 가능.</li>
+  <li><strong>차별화 지점:</strong> 캐시노트는 결제·매출 회계 도구라 "잔당 손익" 의사결정에는 답을 안 줌. 컵마진은 <em>메뉴 단위 의사결정</em>이라는 좁고 깊은 포지션 유지.</li>
+</ul>
+
+<h3>B2. 삼쩜삼 — <a href="https://3o3.co.kr">3o3.co.kr</a></h3>
+<table>
+  <tr><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>합계</th></tr>
+  <tr class="center">
+    <td class="center">5</td><td class="center">5</td><td class="center">4</td><td class="center">5</td><td class="center">4</td><td class="center">4</td>
+    <td class="center"><strong>27</strong></td>
+  </tr>
+</table>
+<ul>
+  <li><strong>인용 근거:</strong> <em>"신고 고객 누적 7,208,747명의 평균 신청액"</em>, <em>"평균 예상 환급액 288,635원"</em>, <em>"환급액 조회자 19,518,109명 대비 환급 대상 고객 13,965,129명으로 71%"</em>.</li>
+  <li><strong>차용할 패턴:</strong> <span class="ok">사회적 증거의 숫자화</span> — "누적 N명 / 평균 환급액 N원". 컵마진의 R5 부족분을 정조준하는 패턴.</li>
+  <li><strong>차별화 지점:</strong> 삼쩜삼은 1회성 환급 조회. 컵마진은 반복 의사결정 도구라 "월 단위 재방문 루프"를 따로 설계해야 함(메일 알림 / 다음 달 비교).</li>
+</ul>
+
+<h3>B3. 토스 — <a href="https://toss.im">toss.im</a></h3>
+<table>
+  <tr><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>합계</th></tr>
+  <tr class="center">
+    <td class="center">3</td><td class="center">4</td><td class="center">5</td><td class="center">4</td><td class="center">5</td><td class="center">5</td>
+    <td class="center"><strong>26</strong></td>
+  </tr>
+</table>
+<ul>
+  <li><strong>인용 근거:</strong> <em>"이해하기 쉬운 용어, 설명이 필요 없는 직관적인 화면 구성"</em>, <em>"송금 전 토스가 알아서 사기 내역 조회를 해드려요"</em>.</li>
+  <li><strong>차용할 패턴:</strong> "이해하기 쉬운 용어" 원칙을 카피 규약으로 명시. 컵마진의 폐기율·잔당 인건비 같은 전문어를 <em>"버리는 비율"</em>·<em>"한 잔 만드는 손품"</em>으로 재작명하는 식.</li>
+  <li><strong>차별화 지점:</strong> 토스는 다목적 슈퍼앱이라 첫 화면 임팩트 약함. 컵마진은 단일 목적 도구의 강점(첫 화면=결과 직진)을 유지.</li>
+</ul>
+
+<h3>B4. Omnicalculator Margin — <a href="https://www.omnicalculator.com/finance/margin">omnicalculator.com/finance/margin</a></h3>
+<table>
+  <tr><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>합계</th></tr>
+  <tr class="center">
+    <td class="center">4</td><td class="center">5</td><td class="center">4</td><td class="center">5</td><td class="center">4</td><td class="center">4</td>
+    <td class="center"><strong>26</strong></td>
+  </tr>
+</table>
+<ul>
+  <li><strong>인용 근거:</strong> 공식 표기 <em>"gross margin = 100 × profit / revenue"</em>, FAQ 가이드 <em>"Generally, a 5% net margin is poor, 10% is okay, while 20% is considered a good margin"</em>.</li>
+  <li><strong>차용할 패턴:</strong> <span class="ok">결과 옆 등급 가이드</span> — "양호" 한 단어 대신 <em>"카페 평균 마진 55%대 → 귀하의 72%는 상위권"</em>처럼 비교 컨텍스트 제공. R4 0.5점 회복 직결.</li>
+  <li><strong>차별화 지점:</strong> Omnicalculator는 영문·전 세계 공통 평균. 컵마진은 <em>한국 카페 업종 평균</em>을 한국형 출처(KCB·통계청·카페창업 데이터)로 인용해 신뢰 확보.</li>
+</ul>
+
+<h3>B5. Wise Currency Converter — <a href="https://wise.com/us/currency-converter/">wise.com/us/currency-converter</a></h3>
+<table>
+  <tr><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>합계</th></tr>
+  <tr class="center">
+    <td class="center">5</td><td class="center">5</td><td class="center">5</td><td class="center">4</td><td class="center">5</td><td class="center">5</td>
+    <td class="center"><strong>29</strong></td>
+  </tr>
+</table>
+<ul>
+  <li><strong>인용 근거:</strong> <em>"Wise always gives you the real mid-market rate. No markups, no hidden profits"</em>, <em>"Most providers hide their fees in the exchange rate"</em>.</li>
+  <li><strong>차용할 패턴:</strong> 입력·결과 <em>단일 화면</em>에서 모든 상호작용 종결. 컵마진의 30초 맛보기를 더 줄여, <em>판매가·원가 2개만으로 잠정 결과를 먼저 보여주는 0초 모드</em> 도입 가능.</li>
+  <li><strong>차별화 지점:</strong> Wise는 환율이라는 검증 가능한 객관 데이터를 다룸. 컵마진은 사장님 입력이 주관적이므로 <em>"입력 신뢰도 표시"</em>(예: "기본값을 6/7 사용 중 — 정확도 보통")로 차별화.</li>
+</ul>
+
+<h3>B6. Square for Restaurants — <a href="https://squareup.com/us/en/restaurants">squareup.com/us/en/restaurants</a></h3>
+<table>
+  <tr><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>합계</th></tr>
+  <tr class="center">
+    <td class="center">3</td><td class="center">2</td><td class="center">3</td><td class="center">2</td><td class="center">3</td><td class="center">4</td>
+    <td class="center"><strong>17</strong></td>
+  </tr>
+</table>
+<ul>
+  <li><strong>인용 근거:</strong> 헤드라인 <em>"Refreshingly easy restaurant tech"</em>, CTA <em>"Get started / Contact sales"</em>, 가격·사회적 증거·즉시 체험 모두 페이지 부재.</li>
+  <li><strong>차용할 패턴:</strong> 없음 (오히려 컵마진이 우월). <span class="ok">반례 벤치</span>로서 의미.</li>
+  <li><strong>차별화 지점:</strong> 컵마진은 Square식 "전체 솔루션" 마케팅이 아니라 <em>잔당 손익 한 가지</em>에 끝까지 집중하는 것이 한국 영세 사장님 시장에서 강점이 됨 — 절대 솔루션화/올인원화 욕심을 내지 말 것.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s5">단계 5. 갭 분석</h2>
+
+<table>
+  <tr>
+    <th>평가 축</th><th>컵마진</th><th>B1 캐시</th><th>B2 삼쩜삼</th><th>B3 토스</th><th>B4 Omni</th><th>B5 Wise</th><th>B6 Square</th><th>벤치 평균</th><th>갭</th>
+  </tr>
+  <tr>
+    <td>R1 명료성</td>
+    <td class="center">4</td><td class="center">3</td><td class="center">5</td><td class="center">3</td><td class="center">4</td><td class="center">5</td><td class="center">3</td>
+    <td class="center">3.83</td><td class="center ok">+0.17</td>
+  </tr>
+  <tr>
+    <td>R2 진입 부담</td>
+    <td class="center">5</td><td class="center">3</td><td class="center">5</td><td class="center">4</td><td class="center">5</td><td class="center">5</td><td class="center">2</td>
+    <td class="center">4.00</td><td class="center ok">+1.00</td>
+  </tr>
+  <tr>
+    <td>R3 작업 효율</td>
+    <td class="center">4</td><td class="center">4</td><td class="center">4</td><td class="center">5</td><td class="center">4</td><td class="center">5</td><td class="center">3</td>
+    <td class="center">4.17</td><td class="center warn">−0.17</td>
+  </tr>
+  <tr>
+    <td>R4 결과 해석</td>
+    <td class="center">3.5</td><td class="center">4</td><td class="center">5</td><td class="center">4</td><td class="center">5</td><td class="center">4</td><td class="center">2</td>
+    <td class="center">4.00</td><td class="center warn">−0.50</td>
+  </tr>
+  <tr>
+    <td>R5 신뢰</td>
+    <td class="center">3</td><td class="center">4</td><td class="center">4</td><td class="center">5</td><td class="center">4</td><td class="center">5</td><td class="center">3</td>
+    <td class="center">4.17</td><td class="center warn">−1.17</td>
+  </tr>
+  <tr>
+    <td>R6 접근성·성능</td>
+    <td class="center warn">2.0</td><td class="center">4</td><td class="center">4</td><td class="center">5</td><td class="center">4</td><td class="center">5</td><td class="center">4</td>
+    <td class="center">4.33</td><td class="center warn">−2.33</td>
+  </tr>
+  <tr>
+    <th>합계</th>
+    <th class="center warn">21.5</th><th class="center">22</th><th class="center">27</th><th class="center">26</th><th class="center">26</th><th class="center">29</th><th class="center">17</th>
+    <th class="center">24.50</th><th class="center warn">−3.00</th>
+  </tr>
+</table>
+<p><small>v1 대비 변경: R6 3.5→2.0(실측 반영, 모바일 LCP 12초). 합계 23→21.5. 음수 갭 합계 v1 −2.50 → v2 −4.00. R6가 최대 갭으로 부상.</small></p>
+
+<h3>음수 갭 축의 페르소나 영향</h3>
+
+<div class="card">
+  <strong class="warn">R5 신뢰 (−1.17, 최대 갭).</strong>
+  P1 박지영은 "다른 사장님이 쓴다는 증거"를 결정적 신뢰 트리거로 가짐. 현재 컵마진은 계산식 노출·데이터 저장 위치 명시까지는 했지만, 누적 사용자 수·실제 카페 사례·후기·매체 노출 같은 사회적 증거가 0건이다. 그 결과 P1은 "이거 누가 쓰는 거지?"라는 의심이 풀리지 않은 채 베타 신청 메일까지 가야 하고, 그 마찰 때문에 이탈한다. 삼쩜삼·Wise처럼 <em>숫자화된 사회적 증거 한 줄</em>이 들어가는 것만으로 갭 절반은 메꿀 수 있다.
+</div>
+
+<div class="card">
+  <strong class="warn">R6 접근성·성능 (−2.33, 실측 후 최대 갭으로 부상).</strong>
+  실측 결과 모바일 LCP 12초로, P1의 매장 환경(LTE + 보급형 갤럭시 + 자연광 반사)에서는 첫 화면이 뜨기 전에 사장님이 이미 다른 일을 하러 가는 시간. 데스크탑 계산기까지 12초 LCP라는 점에서 단순 모바일 throttling 문제가 아니라 <em>계산기 페이지의 클라이언트 JS 무게</em>가 근본 원인이다. CLS 0·a11y 96·SEO 100은 양호하므로, 회복 작업은 정확히 "JS 번들 다이어트 + LCP 요소 우선순위 조정"으로 좁혀진다. axe-core 색대비 위반 8건은 회색 토큰 통일 1회로 해결 가능 — 점수 0.5점 즉시 회복.
+</div>
+
+<div class="card">
+  <strong class="warn">R4 결과 해석 (−0.50).</strong>
+  Omnicalculator의 "5% poor / 10% okay / 20% good"처럼 <em>업계 비교 컨텍스트</em>가 빠져있다. P1이 받는 "양호"는 누구 기준의 양호인지 모호하고, 그 결과 "그래서 가격을 올리라는 거야, 말라는 거야?"라는 의사결정 다음 단계로 못 넘어간다. 카페 평균 마진 벤치를 한 줄 옆에 붙이는 작업이 곧바로 갭을 메운다.
+</div>
+
+<!-- ============================================ -->
+<h2 id="s6">단계 6. 개선 백로그</h2>
+
+<p>총 12개 항목(P0 4 / P1 5 / P2 3). v2에서 실측 결과 반영해 <strong>P0-01·P0-02를 P1으로 강등, P0-13·P0-14를 P0로 신규 추가</strong>. P0 한도 4건 유지. 페르소나 우선순위 — 페이지가 12초에 뜨는 한 다른 카피·UI 개선은 사장님에게 도달하지 않는다.</p>
+
+<div class="backlog p0">
+  <div class="id">[P0-04] Lighthouse·axe-core CI 통합 + 실측 베이스라인 임계치 (v2 갱신)</div>
+  <div class="meta">P0 · 노력도 M · 영향 페르소나 P1 · R6 회귀 방지 · <strong>1순위 (다른 P0의 가드레일)</strong></div>
+  <div class="row"><span class="label">문제:</span> 매장 조명·시력 환경의 접근성/성능이 한 번도 측정된 적 없음. 단계 2-3 실측으로 <strong>모바일 LCP 12초·계산기 Perf 27</strong>이 드러났으니, 회복 작업의 회귀 방지가 시급.</div>
+  <div class="row"><span class="label">권고:</span> GitHub Actions에 Lighthouse-CI + axe-playwright 4종 매트릭스(모바일/데스크탑 × 랜딩/계산기) 배치.</div>
+  <div class="row"><span class="label">근거:</span> 단계 2-3 실측 baseline 표.</div>
+  <div class="row"><span class="label">변경안:</span><br/>
+    • <code>.github/workflows/lhci.yml</code> + <code>lighthouserc.json</code> — 4종 케이스.<br/>
+    • <strong>베이스라인(2026-05-19 실측):</strong> mob-landing Perf 50/LCP 12.0s, mob-calc Perf 27/LCP 12.7s, desk-landing Perf 75/LCP 1.8s, desk-calc Perf 30/LCP 12.0s, a11y 96 (4종 동일).<br/>
+    • <strong>Phase 1 임계치(회귀 금지):</strong> 베이스라인 −5점/+1초 이내. Phase 2 임계치(회복 후 재설정): mobile Perf≥80, LCP≤3.0s, a11y≥98.<br/>
+    • CLS≤0.1, BP=100, SEO=100은 현재 만점이므로 회귀 시 즉시 fail.<br/>
+    • <code>npm run lhci</code> 로컬 명령 추가.
+  </div>
+  <div class="row"><span class="label">측정:</span> PR마다 4종 점수 코멘트, 임계치 위반 시 머지 차단. baseline → Phase 2 임계치 도달까지의 PR 수 추적.</div>
+</div>
+
+<div class="backlog p0">
+  <div class="id">[P0-13] 색대비 위반 8건 일괄 해소 (회색 토큰 통일) (v2 신규)</div>
+  <div class="meta">P0 · 노력도 S · 영향 페르소나 P1 · R6 a11y 회복</div>
+  <div class="row"><span class="label">문제:</span> axe-core 실측에서 color-contrast 위반 8건. P1(시력 1.0 미만 + 매장 자연광 반사) 환경에서 가격표·결과 보조 라벨이 안 보임.</div>
+  <div class="row"><span class="label">권고:</span> 위반 셀렉터의 공통 패턴(<code>text-[#64748d]</code> on <code>bg-[#f0f0ff]</code>/<code>bg-[#f5f8fb]</code>)을 WCAG AA(대비 4.5:1) 통과 토큰으로 단일 교체.</div>
+  <div class="row"><span class="label">근거:</span> 단계 2-3 axe-core 결과 표. 모든 위반이 한 패턴.</div>
+  <div class="row"><span class="label">변경안:</span><br/>
+    • Tailwind 임의 컬러를 디자인 토큰으로 추출 — 예 <code>text-muted</code> = <code>#475569</code>(slate-600, AA 통과) on <code>bg-soft</code>.<br/>
+    • 랜딩 가격표 5건 + 3컬럼 카드 라벨 1건 + 계산기 결과 보조 라벨 2건 동시 해소.<br/>
+    • 추가로 계산기 페이지 <code>landmark-complementary-is-top-level</code> 위반 1건: <code>aside</code>가 다른 랜드마크에 중첩 — <code>aside</code>를 top-level로 끌어내거나 <code>role</code> 재할당.<br/>
+    • axe-core baseline 0건 위반으로 갱신.
+  </div>
+  <div class="row"><span class="label">측정:</span> axe-core 위반 9건 → 0건. 그것을 P0-04 CI에서 검증.</div>
+</div>
+
+<div class="backlog p0">
+  <div class="id">[P0-14] 계산기 페이지 LCP 12초 → ≤3초 (JS 슬림화 + LCP 요소 우선순위) (v2 신규)</div>
+  <div class="meta">P0 · 노력도 L · 영향 페르소나 P1, P2 · R6 핵심 갭(−2.33) 정조준</div>
+  <div class="row"><span class="label">문제:</span> 데스크탑 계산기조차 LCP 12.0초, JS bootup 2.9초(랜딩의 4배), 메인 스레드 6.5초(모바일). 매장에서 P1이 첫 화면을 보기 전에 이미 다른 일을 함.</div>
+  <div class="row"><span class="label">권고:</span> 세 갈래로 동시 진행 — (a) 클라이언트 컴포넌트 → RSC 전환 (b) 무거운 입력 폼/결과 패널 코드 스플리팅 (c) LCP 후보 요소(헤로 카피·결과 숫자)에 <code>fetchpriority="high"</code>/<code>priority</code>.</div>
+  <div class="row"><span class="label">근거:</span> 단계 2-3 발견 2(서버 응답 9ms, 클라이언트 JS가 병목). Next.js 16 App Router는 기본 RSC인데 계산기 페이지가 전체 클라이언트 컴포넌트일 가능성 높음 → 소스 트리 점검 필요.</div>
+  <div class="row"><span class="label">변경안:</span><br/>
+    • Phase A (1주차): <code>src/features/cup-margin/ui/calculator/</code> 트리 점검, "use client" 경계를 입력·결과 패널 단위로 좁힘. 페이지 레벨 컴포넌트는 RSC.<br/>
+    • Phase B (2주차): 차트·CSV·공유 모달 등 부가 기능은 <code>next/dynamic</code> 지연 로드.<br/>
+    • Phase C (3주차): 폰트는 <code>next/font</code>로 자체 호스팅, preload 핵심 1종만.<br/>
+    • 각 Phase 후 P0-04 측정 갱신 보고.
+  </div>
+  <div class="row"><span class="label">측정:</span> 모바일 계산기 LCP 12.7s → ≤3.0s, Perf 27 → ≥80, JS bootup 2.9s → ≤1.0s. 회귀는 P0-04 CI가 가드.</div>
+</div>
+
+<div class="backlog p0">
+  <div class="id">[P0-03] 입력 전문어 카피 재작성 (폐기율·잔당 인건비)</div>
+  <div class="meta">P0 · 노력도 S · 영향 페르소나 P1 · R3 부분, R1 보강</div>
+  <div class="row"><span class="label">문제:</span> P1은 "폐기·실패 예상 비율 %"와 "한 잔 만드는 인건비"를 즉시 추정 못 함 → 입력 중단.</div>
+  <div class="row"><span class="label">권고:</span> 토스의 "이해하기 쉬운 용어" 원칙 적용 + 기본값/도움말 인라인.</div>
+  <div class="row"><span class="label">근거:</span> 토스 인용(B3). P1 워크스루 3단계.</div>
+  <div class="row"><span class="label">변경안:</span><br/>
+    • <em>"폐기·실패 예상 비율"</em> → <em>"버리는 비율 (모르면 5%로 두세요)"</em>, 기본값 5% 자동 채움.<br/>
+    • <em>"한 잔 만드는 인건비"</em> → <em>"한 잔 만들 때 드는 손품(원) — 월 인건비÷월 잔수로 추정"</em>, 옆에 자동 추정 버튼.<br/>
+    • 도움말은 hover/tap 시 1줄 툴팁.
+  </div>
+  <div class="row"><span class="label">측정:</span> 계산기 이탈률(입력 30% 미만에서 나감) −30%.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-01] 결과 옆 카페 업계 마진 벤치 한 줄 (v1 P0 → v2 P1 강등)</div>
+  <div class="meta">P1 · 노력도 S · 영향 페르소나 P1, P2 · R4 갭 해소</div>
+  <div class="row"><span class="label">강등 사유:</span> R6 신규 P0(LCP 12초)가 우선. 페이지가 안 뜨면 결과 카피 차이가 사장님에게 도달하지 않는다.</div>
+  <div class="row"><span class="label">문제:</span> "양호" 한 단어로 끝나서 P1이 가격 인상/유지 결정을 못 내림.</div>
+  <div class="row"><span class="label">권고:</span> 결과 패널 "양호" 옆에 한국 카페 업계 평균 마진(예: 55~65%대) 비교 한 줄 표기.</div>
+  <div class="row"><span class="label">근거:</span> Omnicalculator의 "5% poor / 10% okay / 20% good" 패턴(B4). P1 워크스루 4단계 마찰.</div>
+  <div class="row"><span class="label">변경안:</span><br/>
+    • 카피: <em>"남는 비율 72.3% — 카페 평균 55%대 대비 상위권"</em> 형식.<br/>
+    • 출처 표기 필수: 통계청 또는 소상공인시장진흥공단 자료 링크 각주.<br/>
+    • 평균값은 <code>features/cup-margin/model/benchmarks.ts</code>에 상수로 추출, 분기별 업데이트.
+  </div>
+  <div class="row"><span class="label">측정:</span> 결과 페이지 체류시간 +20%, "이 메뉴 500원 올리면?" CTA 클릭률 +15%.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-02] 사회적 증거 숫자 한 줄을 랜딩 히어로 아래 (v1 P0 → v2 P1 강등)</div>
+  <div class="meta">P1 · 노력도 S · 영향 페르소나 P1 · R5 갭(−1.17)</div>
+  <div class="row"><span class="label">강등 사유:</span> R6 회복 후 적용하면 효과 측정도 더 정확. 베타 카운터 데이터가 자라는 동안 R6 작업.</div>
+  <div class="row"><span class="label">문제:</span> P1의 신뢰 트리거 "다른 사장님이 쓴다는 증거" 부재.</div>
+  <div class="row"><span class="label">권고:</span> 베타 신청자 누적 수 / 누적 계산 횟수 / 누적 저장 메뉴 수 중 정직하게 셀 수 있는 1개를 히어로 직하에 표기.</div>
+  <div class="row"><span class="label">근거:</span> 삼쩜삼의 <em>"누적 7,208,747명의 평균 신청액"</em>(B2) 패턴.</div>
+  <div class="row"><span class="label">변경안:</span><br/>
+    • 카피 예: <em>"지금까지 사장님 1,847명이 4,392잔의 손익을 계산했습니다"</em>(실 데이터로 치환).<br/>
+    • 베타 단계 숫자가 작아도 부풀리지 말 것 — 정직성이 더 큰 신뢰 자산.<br/>
+    • Vercel KV 또는 단순 카운터로 일배치 갱신.
+  </div>
+  <div class="row"><span class="label">측정:</span> 히어로 → 계산기 진입률 +10%, 베타 신청 메일 클릭률 +25%.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-05] 샘플 vs 내 데이터 라벨 명시</div>
+  <div class="meta">P1 · 노력도 S · P1 · R2 강점 보강</div>
+  <div class="row"><span class="label">문제:</span> "샘플 결과 먼저 보기"로 진입한 P1이 화면 숫자가 예시인지 자기 매장인지 즉시 인지 못 함.</div>
+  <div class="row"><span class="label">권고:</span> 계산기 상단에 <em>"📍 지금 보고 있는 건 샘플입니다. 아래 판매가만 바꿔도 내 결과로 바뀌어요"</em> 띠 표시.</div>
+  <div class="row"><span class="label">근거:</span> P1 워크스루 2단계 마찰. Wise(B5)의 단일 화면 즉시 결과 패턴.</div>
+  <div class="row"><span class="label">변경안:</span> 입력 1개 이상 수정 시 띠 자동 사라짐.</div>
+  <div class="row"><span class="label">측정:</span> 첫 입력까지 걸린 평균 시간 −20%.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-06] 공유 링크 미리보기 (받는 사람이 보는 화면)</div>
+  <div class="meta">P1 · 노력도 M · P1, P2 · R3, R5</div>
+  <div class="row"><span class="label">문제:</span> 매장 매출이 든 링크를 직원·세무사에 보내는 것에 P1이 망설임.</div>
+  <div class="row"><span class="label">권고:</span> "저장하고 공유 링크 복사" 버튼 옆에 <em>"받는 사람이 보는 화면 미리보기"</em> 토글.</div>
+  <div class="row"><span class="label">근거:</span> P1 워크스루 5단계.</div>
+  <div class="row"><span class="label">변경안:</span> 미리보기 모달 + "민감 항목 가리기" 체크박스(월세·인건비 숨기고 잔당 이익만 공유 옵션).</div>
+  <div class="row"><span class="label">측정:</span> 공유 링크 복사 건수 +30%.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-07] 결과 패널에 "올려도 됨 / 위험" 한 줄 의사결정 카피</div>
+  <div class="meta">P1 · 노력도 S · P1, P2 · R4 갭</div>
+  <div class="row"><span class="label">문제:</span> "양호" 다음에 행동 권고가 없음.</div>
+  <div class="row"><span class="label">권고:</span> 마진 구간별 의사결정 카피 라이브러리.</div>
+  <div class="row"><span class="label">근거:</span> Omnicalculator(B4) 등급 가이드 + Wise(B5)의 "다음 액션" CTA 결합.</div>
+  <div class="row"><span class="label">변경안:</span><br/>
+    • 마진&lt;30%: <em>"위험 — 가격을 500원 올려보거나 원가를 점검해보세요"</em>.<br/>
+    • 30~55%: <em>"보통 — 동종 평균 수준입니다"</em>.<br/>
+    • 55~70%: <em>"양호 — 가격 인상 여력이 있어요"</em>.<br/>
+    • 70%+: <em>"우수 — 신메뉴 도입 시 마진이 높은 메뉴를 기준선으로 활용하세요"</em>.<br/>
+    • 카피 상수는 <code>features/cup-margin/model/copy.ts</code>에 분리.
+  </div>
+  <div class="row"><span class="label">측정:</span> 결과 → 가격 시뮬레이션 CTA 전환율 +20%.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-08] 입력 신뢰도 표시 (기본값 N/7 사용 중)</div>
+  <div class="meta">P1 · 노력도 S · P1, P2 · R5</div>
+  <div class="row"><span class="label">문제:</span> 사용자가 본인 데이터 얼마나 넣었는지 자각 없음 → 결과 신뢰도 과대/과소 평가.</div>
+  <div class="row"><span class="label">권고:</span> 결과 패널 한 줄에 <em>"입력 정확도: 사장님 입력 5개 + 기본값 2개 사용 중"</em>.</div>
+  <div class="row"><span class="label">근거:</span> Wise(B5)의 투명성 원칙을 한국 영세 사장님 컨텍스트로 변환.</div>
+  <div class="row"><span class="label">변경안:</span> 기본값 사용 개수 ≥3이면 노랑 강조, ≥5이면 빨강.</div>
+  <div class="row"><span class="label">측정:</span> 기본값→실제값 교체 비율 +25%.</div>
+</div>
+
+<div class="backlog p1">
+  <div class="id">[P1-09] 한 손 엄지 도달 영역 점검 (모바일 CTA 하단 고정)</div>
+  <div class="meta">P1 · 노력도 M · P1 · R3, R6</div>
+  <div class="row"><span class="label">문제:</span> P1은 카운터에서 한 손 조작. 화면 상단 CTA는 엄지 도달 어려움.</div>
+  <div class="row"><span class="label">권고:</span> "이 메뉴 500원 올리면?", "저장하고 공유 링크 복사" CTA를 모바일 뷰포트(&lt;640px)에서 하단 sticky 처리.</div>
+  <div class="row"><span class="label">근거:</span> P1 사용 맥락(한 손 조작). 토스(B3) 모바일 패턴.</div>
+  <div class="row"><span class="label">변경안:</span> safe-area-inset-bottom 적용, 키보드 노출 시 자동 숨김.</div>
+  <div class="row"><span class="label">측정:</span> 모바일 CTA 클릭률 +30%.</div>
+</div>
+
+<div class="backlog p2">
+  <div class="id">[P2-10] 실제 사장님 사례 카드 1~3개</div>
+  <div class="meta">P2 · 노력도 L · P1, P2 · R5</div>
+  <div class="row"><span class="label">문제:</span> 사회적 증거 0건.</div>
+  <div class="row"><span class="label">권고:</span> 베타 사용자 중 2~3명 인터뷰, 익명 가능, <em>"가격 500원 올려 월 12만원 추가 이익"</em>식 케이스 카드.</div>
+  <div class="row"><span class="label">근거:</span> 삼쩜삼(B2) 평균 환급액 표기.</div>
+  <div class="row"><span class="label">변경안:</span> 랜딩 "현실적인 카페 손익 구조" 섹션 직후 배치, 사진 없이 카피 + 숫자만으로 시작.</div>
+  <div class="row"><span class="label">측정:</span> 베타 신청 전환율 +15%.</div>
+</div>
+
+<div class="backlog p2">
+  <div class="id">[P2-11] "다음 달 비교" 알림 메일 (월 1회 재방문 루프)</div>
+  <div class="meta">P2 · 노력도 L · P2 · R5 보강</div>
+  <div class="row"><span class="label">문제:</span> 컵마진은 반복 의사결정 도구인데 재방문 루프 부재.</div>
+  <div class="row"><span class="label">권고:</span> 베이직 기능 "다음 달 비교"를 1개월 후 자동 메일로 끌어옴.</div>
+  <div class="row"><span class="label">근거:</span> 삼쩜삼 차별화 메모(단계 4 B2).</div>
+  <div class="row"><span class="label">변경안:</span> 베타 신청 이메일 수집 시점에 동의 체크박스 1개, opt-in 기본.</div>
+  <div class="row"><span class="label">측정:</span> 30일 retention +20%p.</div>
+</div>
+
+<div class="backlog p2">
+  <div class="id">[P2-12] 한국 카페 마진 벤치 데이터 출처 페이지</div>
+  <div class="meta">P2 · 노력도 M · P1, P2 · R5</div>
+  <div class="row"><span class="label">문제:</span> P0-01의 "평균 55%대" 출처를 P2(점주)는 신뢰 검증하고 싶음.</div>
+  <div class="row"><span class="label">권고:</span> <code>/benchmarks</code> 페이지 신설, 통계청·소상공인시장진흥공단·자체 베타 집계 출처 노출.</div>
+  <div class="row"><span class="label">근거:</span> Omnicalculator(B4) FAQ 깊이를 한국화.</div>
+  <div class="row"><span class="label">변경안:</span> 분기별 1회 수동 업데이트, 변경 일자 표기.</div>
+  <div class="row"><span class="label">측정:</span> P0-01 결과 카피 옆 출처 링크 클릭 수 측정.</div>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s7">단계 7. 화면별 즉시 적용 카피·UI 제안</h2>
+
+<h3>7-1. 랜딩 히어로</h3>
+<div class="copy">
+  <div class="k">현재</div>
+  <div>
+    헤드라인: <em>"아메리카노 3,500원, 한 잔에 진짜 얼마 남나요?"</em><br/>
+    서브카피: <em>"판매가·원가·월 판매량·월세를 넣으면 한 잔 순이익과 가격 인상 참고선을 바로 계산합니다."</em><br/>
+    CTA: <em>"내 메뉴로 30초 계산하기"</em> / <em>"샘플 결과 먼저 보기"</em>
+  </div>
+  <div class="k">개선안</div>
+  <div>
+    헤드라인: <em>"아메리카노 3,500원, 한 잔에 진짜 얼마 남나요?"</em> <strong>(유지)</strong><br/>
+    서브카피: <em>"판매가와 원가만 넣어도 한 잔 순이익이 보입니다. 가입·카드 등록 없이 30초."</em><br/>
+    <strong>신규 신뢰 한 줄(서브카피 아래):</strong> <em>"베타 사용자 1,847명이 4,392잔의 손익을 계산했습니다 · 평균 이익률 58%"</em><br/>
+    CTA 1순위: <em>"샘플 결과 먼저 보기"</em> (우선순위 역전)<br/>
+    CTA 2순위: <em>"내 메뉴 30초 계산"</em>
+  </div>
+  <div class="k">근거</div>
+  <div>P0-02. 삼쩜삼 사회적 증거 패턴 + P1 진입 부담 트리거 사전 해소(<em>"가입·카드 없이"</em>). CTA 순서는 Wise(B5) 단일 화면 즉시 결과 패턴 — "샘플부터" 진입이 마찰 더 낮음.</div>
+</div>
+
+<h3>7-2. 가격 페이지 카드</h3>
+<div class="copy">
+  <div class="k">현재(무료)</div>
+  <div>0원 · 카드 등록 없이 계산부터 · ✓메뉴 제한 없이 계산 ✓샘플값으로 바로 확인 ✓가격 변경 시뮬레이션 ✓최근 계산 3개까지 이 기기에 저장</div>
+  <div class="k">개선안(무료)</div>
+  <div>
+    <strong>0원 · 한 잔 손익이 진짜 보이는 무료 도구</strong><br/>
+    ✓ 메뉴 제한 없이 계산 · 가입·카드 등록 없음<br/>
+    ✓ 가격 인상 시뮬레이션 (500/1,000원 단위)<br/>
+    ✓ 카페 평균 마진과 비교해 의사결정 가이드<br/>
+    ✓ 이 기기에 최근 3건 저장 (서버 전송 없음)
+  </div>
+  <div class="k">근거</div>
+  <div>P0-01 의사결정 카피 + R5 "서버 전송 없음" 명시로 P1 데이터 두려움 해소.</div>
+</div>
+
+<div class="copy">
+  <div class="k">현재(베이직)</div>
+  <div>월 9,900원 · 베타 1개월 무료 · 자주 파는 메뉴 저장과 다음 달 비교</div>
+  <div class="k">개선안(베이직)</div>
+  <div>
+    <strong>월 9,900원 · 베타 1개월 무료</strong><br/>
+    "엑셀로 매번 다시 입력하는 사장님을 위한 플랜"<br/>
+    ✓ 자주 파는 메뉴 5개 저장 → 매번 입력 0번<br/>
+    ✓ 가격 변경 전후 월 이익을 한 화면에서 비교<br/>
+    ✓ 돈 새는 메뉴 TOP 3 자동 표시<br/>
+    ✓ 다음 달 자동 메일 알림으로 비교 잊지 않기<br/>
+    <small>해지: 마이페이지 → 해지 (1탭)</small>
+  </div>
+  <div class="k">근거</div>
+  <div>P1 비용 감수성 트리거 "써본 후 안 쓸 거면 바로 해지" 사전 해소. P2-11 재방문 루프 + 캐시노트 대비 차별화 포지셔닝.</div>
+</div>
+
+<div class="copy">
+  <div class="k">현재(스탠다드)</div>
+  <div>월 19,900원 · 1~3매장 비교와 원재료 관리 · ✓매장 2~3개 통합 비교 ✓원재료 단가 변동 ✓채널별 수익성 ✓폐기·발주 ✓공유 링크 ✓월 1회 진단 PDF</div>
+  <div class="k">개선안(스탠다드)</div>
+  <div>
+    <strong>월 19,900원 · 2~3매장 사장님 전용</strong><br/>
+    "엑셀 매장 비교가 30분 → 5분"<br/>
+    ✓ 매장별 메뉴 손익을 한 줄에 나란히 비교<br/>
+    ✓ 원두·우유값 인상 시 영향 받는 메뉴 자동 표시<br/>
+    ✓ 배달/홀 채널별 진짜 마진 분리<br/>
+    ✓ 직원·세무사 공유 링크 (민감 항목 가리기 포함)<br/>
+    ✓ 월 1회 사장님 매장 진단 PDF
+  </div>
+  <div class="k">근거</div>
+  <div>P2 김민호의 "엑셀보다 빠르면 유료 전환" 명시 트리거를 카드 본문에서 직접 약속. P1-06 공유 미리보기 기능 연계.</div>
+</div>
+
+<h3>7-3. 계산기 진입 직후 안내</h3>
+<div class="copy">
+  <div class="k">현재</div>
+  <div><em>"처음에는 메뉴 1개와 필수 숫자만 보입니다. 여러 메뉴, 저장, CSV는 필요할 때 열어보세요."</em></div>
+  <div class="k">개선안</div>
+  <div>
+    상단 안내 띠(샘플 진입 시): <em>"📍 지금은 샘플 카페 숫자입니다. 아래 판매가만 바꿔도 사장님 계산으로 바뀌어요."</em><br/>
+    본문 안내: <em>"필수 3개(판매가·원재료비·월 판매량)만 넣으면 결과가 보입니다. 폐기율·인건비는 기본값을 그대로 둬도 OK."</em><br/>
+    하단 신뢰 한 줄: <em>"입력한 숫자는 사장님 기기에만 저장됩니다. 서버로 전송되지 않습니다."</em>
+  </div>
+  <div class="k">근거</div>
+  <div>P1-05 샘플/내 데이터 구분 + P0-03 폐기율·인건비 부담 해소 + R5 데이터 처리 투명성을 한 화면에서 처리.</div>
+</div>
+
+<h3>7-4. 결과 패널 해석 카피</h3>
+<p><small>v2 메모: 아래 카피의 보조 라벨(<em>"입력 정확도..."</em>)이 현재 <code>text-[#64748d]</code> on <code>bg-[#f0f0ff]</code> 조합으로 axe-core 색대비 위반. P0-13 토큰 통일 작업 시 함께 교체할 것.</small></p>
+<div class="copy">
+  <div class="k">현재</div>
+  <div><em>"현재 입력값 기준으로 운영 여유가 있어요 / 남는 비율 72.3%, 양호"</em></div>
+  <div class="k">개선안</div>
+  <div>
+    1줄 의사결정: <em>"💚 양호 — 카페 평균 55%대 대비 상위권. 가격 인상 여력이 있어요."</em><br/>
+    2줄 컨텍스트: <em>"입력 정확도: 사장님 입력 5개 + 기본값 2개 사용 중. 폐기율을 본인 매장값으로 바꾸면 더 정확해져요."</em><br/>
+    3줄 다음 행동: <em>"500원 올리면 월 이익 +312,000원 예상 →"</em> (CTA 화살표)
+  </div>
+  <div class="k">근거</div>
+  <div>P0-01(업계 벤치) + P1-07(의사결정 카피) + P1-08(입력 신뢰도) 결합. 모든 권고가 P1 워크스루 4~5단계 마찰 해소.</div>
+</div>
+
+<hr/>
+<p><small>본 문서 v2 (2026-05-19, 옵션 3 반영): v1 직후 사용자 그릴링으로 Lighthouse + axe-core 로컬 실측 추가, 백로그·hermes 프롬프트 동기화. 변경 사항 — 단계 2-1 R6 3.5→2.0, 단계 2-3 실측 표 추가, 단계 5 컵마진 합계 23→21.5(R6 갭 −0.83→−2.33), 단계 6 P0 재배치(P0-01·02 → P1 강등, P0-13 색대비·P0-14 LCP 신규), P0-04에 베이스라인 임계치 박음, 단계 7-4 색대비 메모 추가. 원본 측정: <code>.local/ux-audit/measurements/</code>(lh-*.json 5건 + axe-*.json 2건).</small></p>
+
+</main>
+</body>
+</html>
