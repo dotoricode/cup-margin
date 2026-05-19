@@ -50,6 +50,11 @@ const emptyInput: MultiMenuMarginInput = {
   menus: [emptyMenu(1)],
 };
 
+const quickStartInput: MultiMenuMarginInput = {
+  monthlyFixedCost: 0,
+  menus: [DEFAULT_MULTI_MENU_INPUT.menus[0]],
+};
+
 const menuFields: Array<{
   id: Exclude<keyof MenuMarginInput, "id" | "menuName">;
   label: string;
@@ -105,11 +110,11 @@ const problemCards = [
 ];
 
 export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = {}) {
-  const [input, setInput] = useState<MultiMenuMarginInput>(() => cloneInput(DEFAULT_MULTI_MENU_INPUT));
+  const [input, setInput] = useState<MultiMenuMarginInput>(() => cloneInput(testPage ? quickStartInput : DEFAULT_MULTI_MENU_INPUT));
   const [navOpen, setNavOpen] = useState(false);
   const [waitlistEmail, setWaitlistEmail] = useState("");
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
-  const [selectedMenuId, setSelectedMenuId] = useState(DEFAULT_MULTI_MENU_INPUT.menus[1]?.id ?? DEFAULT_MULTI_MENU_INPUT.menus[0].id);
+  const [selectedMenuId, setSelectedMenuId] = useState((testPage ? quickStartInput : DEFAULT_MULTI_MENU_INPUT).menus[0].id);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState(testPage);
   const [priceDelta, setPriceDelta] = useState(500);
   const [volumeChangeRate, setVolumeChangeRate] = useState(-5);
@@ -122,7 +127,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
   const [mobileCalculatorView, setMobileCalculatorView] = useState<MobileCalculatorView>("result");
   const [saveMessage, setSaveMessage] = useState("계산 결과는 이 기기에만 저장됩니다. 필요하면 공유 링크를 복사해 다시 열 수 있어요.");
   const [recentSavedCalculations, setRecentSavedCalculations] = useState<SavedMultiMenuState[]>([]);
-  const [isSampleMode, setIsSampleMode] = useState(true);
+  const [, setIsSampleMode] = useState(true);
   const [showFirstVisitHint, setShowFirstVisitHint] = useState(testPage);
   const simulatedRecipeProduct = useMemo(
     () => calculateProductCost({ ...recipeProductInput, salePrice: selectedRecipePrice }),
@@ -170,6 +175,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
     if (sharedMultiState) {
       window.setTimeout(() => {
         setInput(cloneInput(sharedMultiState.input));
+        setSelectedMenuId(sharedMultiState.input.menus[0]?.id ?? "");
         setIsCalculatorOpen(true);
         setIsSampleMode(false);
         setSaveMessage("공유 링크로 저장한 계산을 불러왔어요.");
@@ -216,6 +222,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
 
   function startOwnInput() {
     setInput(cloneInput(emptyInput));
+    setSelectedMenuId(emptyInput.menus[0].id);
     setIsCalculatorOpen(true);
     setIsSampleMode(false);
     setShowFirstVisitHint(true);
@@ -254,6 +261,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
 
   function loadSavedCalculatorState(savedState: SavedMultiMenuState) {
     setInput(cloneInput(savedState.input));
+    setSelectedMenuId(savedState.input.menus[0]?.id ?? "");
     setIsCalculatorOpen(true);
     setIsSampleMode(false);
     setSaveMessage(`${savedState.name} 계산을 불러왔어요.`);
@@ -261,14 +269,16 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
 
   function resetToSampleInput() {
     setInput(cloneInput(DEFAULT_MULTI_MENU_INPUT));
-    setIsCalculatorOpen(false);
+    setSelectedMenuId(DEFAULT_MULTI_MENU_INPUT.menus[0].id);
+    setIsCalculatorOpen(true);
     setIsSampleMode(true);
     setShowFirstVisitHint(false);
-    setSaveMessage("샘플 카페 기준으로 다시 표시했어요. 내 매장 값으로 바꾸면 결과가 달라집니다.");
+    setSaveMessage("9개 메뉴 샘플을 열었어요. 필요한 메뉴만 남기고 내 매장 값으로 바꿔보세요.");
   }
 
   function resetCalculatorInput() {
     setInput(cloneInput(emptyInput));
+    setSelectedMenuId(emptyInput.menus[0].id);
     setIsCalculatorOpen(true);
     setIsSampleMode(false);
     setSaveMessage("입력값을 비웠어요. 월 운영비와 메뉴 1개부터 다시 넣어보세요.");
@@ -327,10 +337,12 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
 
   function addMenu() {
     setIsSampleMode(false);
+    const nextMenu = emptyMenu(input.menus.length + 1);
     setInput((current) => ({
       ...current,
-      menus: [...current.menus, emptyMenu(current.menus.length + 1)],
+      menus: [...current.menus, nextMenu],
     }));
+    setSelectedMenuId(nextMenu.id);
   }
 
   function removeMenu(menuId: string) {
@@ -453,14 +465,14 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
             <div className="rounded-2xl border border-[#c7d3e3] bg-white px-4 py-3 shadow-[rgba(11,37,69,0.08)_0px_12px_28px_-18px]">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-black text-[#0b2545]">{isSampleMode ? "샘플 카페 기준" : "내 매장 값 계산 중"}</p>
-                  <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[#061b31]">{isSampleMode ? "현재는 샘플 카페 기준입니다. 내 매장 값으로 바꾸면 결과가 달라집니다." : "내 매장 값으로 계산 중입니다. 입력을 바꾸면 결과가 바로 달라집니다."}</h1>
-                  <p className="mt-1 text-sm leading-6 text-[#64748d]">월 운영비, 메뉴명, 판매가, 원재료비, 컵·포장비, 월 판매량만 바꿔도 결과가 바로 다시 계산됩니다.</p>
+                  <p className="text-xs font-black text-[#0b2545]">언제 쓰나요</p>
+                  <h1 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-[#061b31]">아메리카노 가격만 바꿔도 한 잔에 얼마 남는지 바로 봅니다.</h1>
+                  <p className="mt-1 text-sm leading-6 text-[#64748d]">처음에는 메뉴 1개와 필수 숫자만 보입니다. 여러 메뉴, 저장, CSV는 필요할 때 열어보세요.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={startOwnInput} className="cm-button-primary rounded-lg px-4 py-2 text-sm font-bold">내 매장 값 입력하기</button>
-                  <button type="button" onClick={resetToSampleInput} className="cm-button-secondary rounded-lg px-4 py-2 text-sm font-bold">샘플로 계속 보기</button>
-                  <button type="button" onClick={resetCalculatorInput} className="rounded-lg px-3 py-2 text-sm font-bold text-[#64748d] hover:bg-[#f3f7fb]">샘플값 초기화</button>
+                  <button type="button" onClick={startOwnInput} className="cm-button-primary rounded-lg px-4 py-2 text-sm font-bold">내 메뉴 하나로 시작하기</button>
+                  <button type="button" onClick={resetToSampleInput} className="cm-button-secondary rounded-lg px-4 py-2 text-sm font-bold">9개 메뉴 샘플 보기</button>
+                  <button type="button" onClick={resetCalculatorInput} className="rounded-lg px-3 py-2 text-sm font-bold text-[#64748d] hover:bg-[#f3f7fb]">입력 비우기</button>
                 </div>
               </div>
             </div>
@@ -471,24 +483,29 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
             <div className="flex flex-col gap-4 border-b border-[#e5edf5] pb-5 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <SectionEyebrow>무료 계산기</SectionEyebrow>
-                <h2 className="mt-3 text-3xl font-medium tracking-[-0.04em] text-[#061b31] sm:text-4xl">메뉴별 판매량으로 계산하기</h2>
+                <h2 className="mt-3 text-3xl font-medium tracking-[-0.04em] text-[#061b31] sm:text-4xl">한 메뉴부터 빠르게 계산하기</h2>
                 <p className="mt-3 max-w-2xl text-base leading-7 text-[#64748d]">
-                  고정 운영비는 한 번만 입력하고, 각 메뉴의 월 판매잔수·원가·수수료를 넣어보세요. 결과 패널은 오른쪽에 고정해 한눈에 비교합니다.
+                  판매가, 원재료비, 컵·포장비, 월 판매량만 바꿔도 한 잔 이익과 월 이익이 바로 보입니다.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {isCalculatorOpen ? (
-                  <>
-                    <button type="button" onClick={addMenu} className="cm-button-primary w-fit rounded-lg px-4 py-2 text-sm font-bold">
-                      + 메뉴 추가
-                    </button>
-                    <button type="button" onClick={saveCalculatorState} className="cm-button-secondary w-fit rounded-lg px-4 py-2 text-sm font-bold">
-                      저장·공유
-                    </button>
-                    <button type="button" onClick={downloadCalculatorCsv} className="w-fit rounded-lg px-3 py-2 text-sm font-bold text-[#64748d] hover:bg-[#f3f7fb]">
-                      CSV
-                    </button>
-                  </>
+                  <details className="group relative w-full sm:w-auto">
+                    <summary className="cm-button-secondary flex w-fit cursor-pointer list-none items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-bold marker:hidden">
+                      여러 메뉴·저장 옵션
+                    </summary>
+                    <div className="mt-2 flex flex-wrap gap-2 rounded-2xl border border-[#e5edf5] bg-white p-3 shadow-[rgba(11,37,69,0.12)_0px_16px_32px_-24px] sm:absolute sm:right-0 sm:z-20 sm:w-72">
+                      <button type="button" onClick={addMenu} className="cm-button-primary w-fit rounded-lg px-4 py-2 text-sm font-bold">
+                        + 메뉴 추가
+                      </button>
+                      <button type="button" onClick={saveCalculatorState} className="cm-button-secondary w-fit rounded-lg px-4 py-2 text-sm font-bold">
+                        나중에 비교하려면 저장
+                      </button>
+                      <button type="button" onClick={downloadCalculatorCsv} className="w-fit rounded-lg px-3 py-2 text-sm font-bold text-[#64748d] hover:bg-[#f3f7fb]">
+                        엑셀로 보려면 CSV
+                      </button>
+                    </div>
+                  </details>
                 ) : (
                   <button type="button" onClick={startOwnInput} className="cm-button-primary w-fit rounded-lg px-4 py-2 text-sm font-bold">
                     + 내 메뉴 입력 시작
@@ -501,7 +518,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
               <div>
                 {showFirstVisitHint ? (
                   <div className="cm-onboarding-pulse mt-5 rounded-2xl border border-[#9fc3ff] bg-[#eef6ff] px-4 py-3 text-sm font-bold leading-6 text-[#0b2545]">
-                    월 운영비(임대료·관리비 등)를 먼저 입력해보세요. 샘플이 아니라 사장님 가게 값으로 결과가 바뀝니다.
+                    처음엔 아메리카노 하나만 보세요. 판매가와 원가만 바꿔도 “한 잔에 얼마 남는지” 바로 계산됩니다.
                   </div>
                 ) : null}
                 <div className={`${showFirstVisitHint ? "mt-3" : "mt-5"} rounded-2xl border border-[#d8e3ee] bg-[#f8fbff] p-4 transition focus-within:border-[#0b2545] focus-within:bg-white`}>
@@ -582,12 +599,22 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                       </div>
                     </div>
                     <div>
-                      <p className="mb-2 text-xs font-black text-[#0b2545]">4단계 · 원가와 새는 비용</p>
+                      <p className="mb-2 text-xs font-black text-[#0b2545]">4단계 · 기본 원가</p>
                       <div className="grid gap-3 sm:grid-cols-2">
-                        {menuFields.slice(2).map((field) => (
+                        {menuFields.slice(2, 4).map((field) => (
                           <MenuNumberField key={field.id} field={field} menu={menu} onChange={updateMenuField} />
                         ))}
                       </div>
+                      <details className="mt-3 rounded-2xl bg-[#f8fbff] p-3 ring-1 ring-[#e5edf5]">
+                        <summary className="cursor-pointer text-sm font-black text-[#0b2545]">
+                          배달 수수료·폐기·인건비까지 자세히 입력
+                        </summary>
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          {menuFields.slice(4).map((field) => (
+                            <MenuNumberField key={field.id} field={field} menu={menu} onChange={updateMenuField} />
+                          ))}
+                        </div>
+                      </details>
                     </div>
                   </div>
                 </article>
@@ -595,9 +622,11 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
               })}
             </div>
 
-            <button type="button" onClick={addMenu} className="mt-5 w-full rounded-xl border border-dashed border-[#9fb3cc] bg-[#f3f7fb] px-4 py-4 text-sm font-black text-[#0b2545] transition hover:bg-[#e8f0f8]">
-              + 메뉴 추가하기
-            </button>
+            {input.menus.length > 1 ? (
+              <button type="button" onClick={addMenu} className="mt-5 w-full rounded-xl border border-dashed border-[#9fb3cc] bg-[#f3f7fb] px-4 py-4 text-sm font-black text-[#0b2545] transition hover:bg-[#e8f0f8]">
+                + 메뉴 추가하기
+              </button>
+            ) : null}
               </div>
             ) : (
               <button
@@ -615,19 +644,26 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
             <div className="lg:sticky lg:top-4 lg:z-10">
               <ResultPanel result={result} selectedMenu={selectedMenu ?? null} verdict={verdict} hasCalculatorInput={hasCalculatorInput} />
             </div>
-            <PriceRiskPanel
-              menus={result.menus}
-              selectedMenuId={selectedMenu?.id ?? ""}
-              onSelectMenu={setSelectedMenuId}
-              priceDelta={priceDelta}
-              onChangePriceDelta={setPriceDelta}
-              volumeChangeRate={volumeChangeRate}
-              onChangeVolumeChangeRate={setVolumeChangeRate}
-              risk={priceRisk}
-            />
-            <MenuBreakdownPanel menus={result.menus} onSelectMenu={(menuId) => selectMenuForPriceRisk(menuId, 500)} hasCalculatorInput={hasCalculatorInput} />
-            <SaveCalculatorCard onSave={saveCalculatorState} onExportCsv={downloadCalculatorCsv} message={saveMessage} recentStates={recentSavedCalculations} onLoadState={loadSavedCalculatorState} />
-            <SaveCalculatorCard onSave={saveCalculatorState} onExportCsv={downloadCalculatorCsv} message={saveMessage} variant="desktop" recentStates={recentSavedCalculations} onLoadState={loadSavedCalculatorState} />
+            <details className="rounded-3xl border border-[#e5edf5] bg-white p-4 shadow-[rgba(11,37,69,0.08)_0px_16px_36px_-28px]">
+              <summary className="cursor-pointer text-sm font-black text-[#0b2545]">
+                가격 인상·메뉴별 비교·저장 더 보기
+              </summary>
+              <div className="mt-4 space-y-4">
+                <PriceRiskPanel
+                  menus={result.menus}
+                  selectedMenuId={selectedMenu?.id ?? ""}
+                  onSelectMenu={setSelectedMenuId}
+                  priceDelta={priceDelta}
+                  onChangePriceDelta={setPriceDelta}
+                  volumeChangeRate={volumeChangeRate}
+                  onChangeVolumeChangeRate={setVolumeChangeRate}
+                  risk={priceRisk}
+                />
+                <MenuBreakdownPanel menus={result.menus} onSelectMenu={(menuId) => selectMenuForPriceRisk(menuId, 500)} hasCalculatorInput={hasCalculatorInput} />
+                <SaveCalculatorCard onSave={saveCalculatorState} onExportCsv={downloadCalculatorCsv} message={saveMessage} recentStates={recentSavedCalculations} onLoadState={loadSavedCalculatorState} />
+                <SaveCalculatorCard onSave={saveCalculatorState} onExportCsv={downloadCalculatorCsv} message={saveMessage} variant="desktop" recentStates={recentSavedCalculations} onLoadState={loadSavedCalculatorState} />
+              </div>
+            </details>
           </aside>
         </div>
       </section>
