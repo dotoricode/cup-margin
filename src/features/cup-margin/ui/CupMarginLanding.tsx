@@ -112,20 +112,6 @@ export function CupMarginLanding() {
 
  }, []);
 
- useEffect(() => {
-  const onboardingKey = "cup-margin:calculator:onboarding-seen:v1";
-  const hasSeenOnboarding = window.localStorage.getItem(onboardingKey);
-
-  if (!hasSeenOnboarding) {
-   window.setTimeout(() => {
-    setIsCalculatorOpen(true);
-    setShowFirstVisitHint(true);
-    document.getElementById("monthly-fixed-cost")?.focus();
-   }, 0);
-   window.localStorage.setItem(onboardingKey, "true");
-  }
- }, []);
-
  function startOwnInput() {
   setInput(cloneInput(emptyInput));
   setSelectedMenuId(emptyInput.menus[0].id);
