@@ -159,6 +159,7 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
     ? calculatePriceChangeRisk(selectedMenu, { priceDelta, volumeChangeRate })
     : null;
   const verdict = getPortfolioVerdict(result);
+  const menuResultById = useMemo(() => new Map(result.menus.map((menu) => [menu.id, menu])), [result.menus]);
 
   useEffect(() => {
     const productIds = DEFAULT_RECIPE_PRICING_PRODUCTS.map((product) => product.id);
@@ -476,15 +477,23 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={startOwnInput} className="cm-button-primary w-fit rounded-lg px-4 py-2 text-sm font-bold">
-                  + 내 메뉴 입력 시작
-                </button>
-                <button type="button" onClick={resetToSampleInput} className="cm-button-secondary w-fit rounded-lg px-4 py-2 text-sm font-bold">
-                  샘플로 계속 보기
-                </button>
-                <button type="button" onClick={resetCalculatorInput} className="w-fit rounded-lg px-3 py-2 text-sm font-bold text-[#64748d] hover:bg-[#f3f7fb]">
-                  샘플값 초기화
-                </button>
+                {isCalculatorOpen ? (
+                  <>
+                    <button type="button" onClick={addMenu} className="cm-button-primary w-fit rounded-lg px-4 py-2 text-sm font-bold">
+                      + 메뉴 추가
+                    </button>
+                    <button type="button" onClick={saveCalculatorState} className="cm-button-secondary w-fit rounded-lg px-4 py-2 text-sm font-bold">
+                      저장·공유
+                    </button>
+                    <button type="button" onClick={downloadCalculatorCsv} className="w-fit rounded-lg px-3 py-2 text-sm font-bold text-[#64748d] hover:bg-[#f3f7fb]">
+                      CSV
+                    </button>
+                  </>
+                ) : (
+                  <button type="button" onClick={startOwnInput} className="cm-button-primary w-fit rounded-lg px-4 py-2 text-sm font-bold">
+                    + 내 메뉴 입력 시작
+                  </button>
+                )}
               </div>
             </div>
 
@@ -520,8 +529,12 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
             </div>
 
             <div className="mt-5 grid gap-4 xl:grid-cols-2">
-              {input.menus.map((menu, index) => (
-                <article key={menu.id} className="rounded-2xl border border-[#e5edf5] bg-white p-4 shadow-[rgba(23,23,23,0.05)_0px_14px_30px_-20px]">
+              {input.menus.map((menu, index) => {
+                const menuResult = menuResultById.get(menu.id);
+                const menuHealth = menuResult ? getMenuHealth(menuResult.marginRate, menuResult.profitPerCup) : null;
+
+                return (
+                <article id={`menu-input-${menu.id}`} key={menu.id} className="scroll-mt-6 rounded-2xl border border-[#e5edf5] bg-white p-4 shadow-[rgba(23,23,23,0.05)_0px_14px_30px_-20px]">
                   <div className="flex flex-col gap-3 border-b border-[#edf2f7] pb-4 sm:flex-row sm:items-center sm:justify-between">
                     <label className="flex-1">
                       <span className="text-xs font-bold text-[#0b2545]">2단계 · 메뉴 {index + 1} 이름</span>
@@ -543,6 +556,22 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                     </button>
                   </div>
 
+                  {menuResult && menuHealth ? (
+                    <div className="mt-4 grid gap-2 rounded-2xl bg-[#f8fbff] p-3 ring-1 ring-[#d8e3ee] sm:grid-cols-3">
+                      <div>
+                        <p className="text-[11px] font-black text-[#64748d]">한 잔 이익</p>
+                        <p className="mt-1 text-lg font-black tracking-[-0.03em] text-[#061b31]">{formatWon(menuResult.profitPerCup)}</p>
+                      </div>
+                      <div>
+                        <p className="text-[11px] font-black text-[#64748d]">월 이익</p>
+                        <p className="mt-1 text-lg font-black tracking-[-0.03em] text-[#061b31]">{formatWon(menuResult.monthlyProfit)}</p>
+                      </div>
+                      <div className="flex items-center sm:justify-end">
+                        <span className={`rounded-full px-3 py-1.5 text-xs font-black ${menuHealth.className}`}>{menuHealth.label}</span>
+                      </div>
+                    </div>
+                  ) : null}
+
                   <div className="mt-4 space-y-4">
                     <div>
                       <p className="mb-2 text-xs font-black text-[#0b2545]">3단계 · 가격과 월 판매량</p>
@@ -562,7 +591,8 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
                     </div>
                   </div>
                 </article>
-              ))}
+                );
+              })}
             </div>
 
             <button type="button" onClick={addMenu} className="mt-5 w-full rounded-xl border border-dashed border-[#9fb3cc] bg-[#f3f7fb] px-4 py-4 text-sm font-black text-[#0b2545] transition hover:bg-[#e8f0f8]">
@@ -581,8 +611,10 @@ export function CupMarginLanding({ testPage = false }: { testPage?: boolean } = 
             )}
           </div>
 
-          <aside className="order-1 space-y-4 lg:sticky lg:top-4 lg:order-2 lg:self-start">
-            <ResultPanel result={result} selectedMenu={selectedMenu ?? null} verdict={verdict} hasCalculatorInput={hasCalculatorInput} />
+          <aside className="order-1 space-y-4 lg:order-2 lg:self-start">
+            <div className="lg:sticky lg:top-4 lg:z-10">
+              <ResultPanel result={result} selectedMenu={selectedMenu ?? null} verdict={verdict} hasCalculatorInput={hasCalculatorInput} />
+            </div>
             <PriceRiskPanel
               menus={result.menus}
               selectedMenuId={selectedMenu?.id ?? ""}
@@ -1891,10 +1923,7 @@ function PriceRiskPanel({
         {risk.warning}
       </p>
       <p className="mt-4 text-xs font-bold leading-5 text-[#64748d]">
-        가격을 바꾼 뒤에는 다음 달 실제 판매량과 함께 다시 보세요.
-      </p>
-      <p className="mt-3 rounded-xl bg-white px-4 py-3 text-center text-sm font-black text-[#0b2545] ring-1 ring-[#c7d3e3]">
-        결과 저장은 오른쪽 아래 “저장하고 공유 링크 복사” 버튼에서 할 수 있어요. CSV 다운로드로 다음 달 비교표도 남길 수 있습니다.
+        가격을 바꾼 뒤에는 다음 달 실제 판매량과 함께 다시 보세요. 저장·공유와 CSV는 계산기 상단 또는 하단 카드에서 사용할 수 있습니다.
       </p>
     </div>
   );
